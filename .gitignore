@@ -161,3 +161,4 @@ cython_debug/
 
 # Sensitive for work
 details.txt
+config.py
