@@ -1,34 +1,52 @@
 from aiogram import F, Router
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
+
 import app.keyboards as kb
+import app.song_search as ss
 
 router = Router()
 
-# Відповідь по конкретній команді(/start) 
+class SongSelection(StatesGroup):
+    search_method = State()
+    search_query = State()
+
+# Вибрати метод пошуку пісні 
 @router.message(CommandStart())
-async def cmd_start(message: Message):
-    await message.reply(f'Привіт {message.from_user.first_name}!\nТвій ID: {message.from_user.id}',
-                        reply_markup=kb.settings)
+async def cmd_start(message: Message, state: FSMContext):
+    await message.answer(f'Вітаю {message.from_user.first_name}!\nОберіть формат пошуку:',
+                        reply_markup=kb.search_method_kb)
+    await state.set_state(SongSelection.search_method)
 
-# Відповідь по очікуваній команді(/help)
-@router.message(Command('help'))
-async def get_help(message:Message):
-    await message.answer('Це команда Хелп.')
+# Зберегти метод пошуку в словник
+@router.message(SongSelection.search_method)
+async def process_search_method(message: Message, state: FSMContext):
+    search_method = message.text
+    if search_method in ['Пошук за назвою', 'Пошук за текстом']:
+        await state.update_data(search_method = search_method)
+        await message.answer('Введіть текст для пошуку:', reply_markup=kb.remove_kb)
+        await state.set_state(SongSelection.search_query)
+    else:
+        await message.answer('Будь ласка, оберіть метод пошуку із запропонованих варіантів:')
 
-# Відповідь по очікуваній фразі(str)
-@router.message(F.text == 'Слава Ісусу!')
-async def glory_to_God(message:Message):
-    await message.answer('Навіки Слава!!!')
+# Зберегти текст в словник, передати словник в song_search.py
+@router.message(SongSelection.search_query)
+async def process_search_query(message: Message, state: FSMContext):
+    search_text = message.text
+    await state.update_data(search_text = search_text)
+    search_data = await state.get_data()
+    songs_dict = ss.get_songs_dict(search_data)
 
-# Відповідь на отримане зоображення
-@router.message(F.photo)
-async def get_photo(message:Message):
-    await message.answer(f'ID фотографії: {message.photo[-1].file_id}')
+    for song_id, song_name in songs_dict.items():
+        await message.answer(f"{song_id}. {song_name['title']}")
+        
+    await message.answer('Оберіть формат пошуку:', reply_markup=kb.search_method_kb)
+    await state.set_state(SongSelection.search_method)
 
-# Відправити користувачеві зоображення, яке вже загружене на сервера ТГ. 
-# Відправка по ID або по посиланню на онлайн ресурс.
-@router.message(Command('give_photo'))
-async def give_photo(message:Message):
-    await message.answer_photo(photo='AgACAgIAAxkBAAMRZmTQLMQLHn3kqWb_hONk6Niqf9IAAubXMRtEtilLvcAWHxLSzPEBAAMCAAN5AAM1BA', 
-                               caption='Це таблиця Варкрафт 3.')
+
+'''@router.callback_query(F.data == 'catalog')
+async def catalog(callback: CallbackQuery):
+    await callback.answer('')
+    await callback.message.edit_text('Твій каталог...', reply_markup=await kb.inline_cars())'''

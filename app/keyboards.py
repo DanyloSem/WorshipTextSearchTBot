@@ -1,15 +1,22 @@
-from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton, 
+from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove,
                            InlineKeyboardMarkup, InlineKeyboardButton)
+from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
+
+remove_kb = ReplyKeyboardRemove()
 # Створюємо клавіатуру, додаємо в неї кнопки
-main = ReplyKeyboardMarkup(keyboard=[
-    [KeyboardButton(text='Каталог')], # Перший ряд з однію кнопкою
-    [KeyboardButton(text='Смітник'), KeyboardButton(text='Контакти')] # Другий ряд з двома кнопками
-],
+search_method_kb = ReplyKeyboardMarkup(keyboard = [
+    [KeyboardButton(text='Пошук за назвою')],
+    [KeyboardButton(text='Пошук за текстом')]
+    ],
                            resize_keyboard=True,
-                           input_field_placeholder='Виберіть формат пошуку.',
-                           )
+                           input_field_placeholder='Оберіть формат:'
+    )
 
-settings = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text='Youtube', url='https://www.youtube.com/')]
-    ])
+async def inline_songs(songs_dict):
+    builder = InlineKeyboardBuilder()
+    for song_id, song_info in songs_dict.items():
+        builder.add(InlineKeyboardButton(text=song_info['title'], 
+                                         callback_data=f'{song_id}, {song_info['title']}, {song_info['url']}',
+                                         ))
+    return builder.adjust(1).as_markup()
