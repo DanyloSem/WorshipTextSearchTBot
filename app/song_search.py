@@ -21,9 +21,9 @@ def get_headers():
     return headers
 
 def choose_search(search_method):
-    if search_method == 'Пошук за назвою':
+    if search_method == '📚Пошук за назвою':
         return TITLE_SEARCH_URL
-    if search_method == 'Пошук за текстом':
+    if search_method == '📝Пошук за текстом':
         return LYRICS_SEARCH_URL
 
 def get_response_json(request_url, headers):
@@ -46,13 +46,6 @@ def fetch_songs_dict(song_data, songs_dict):
         }
     return songs_dict
 
-def get_song_text(song_data):
-    if 'data' in song_data and song_data['data']:
-        lyrics = song_data['data'][0]['attributes'].get('lyrics', 'Текст пісні відсутній.')
-        print(lyrics)
-    else:
-        print('Текст пісні не знайдено.')
-
 def get_songs_dict(search_data):
     search_url = choose_search(search_data['search_method'])
     search_text = search_data['search_text']
@@ -69,17 +62,8 @@ def get_songs_dict(search_data):
         songs_dict = fetch_songs_dict(songs_data, songs_dict)
     return songs_dict
 
-
-def choose_song(songs_dict):
-    for index, song_atrs in songs_dict.items():
-        print(f"{index}. {song_atrs['title']}")
-    chosen_song = input('Введи номер вибраної пісні: ')
-    return int(chosen_song)
-
-def get_song_text(songs_dict):
+def get_song_text(song_url):
     headers = get_headers()
-    chosen_song = choose_song(songs_dict)
-    chosen_song_url = ''.join([songs_dict[chosen_song]['url'], '/arrangements'])
-    song_data = get_response_json(chosen_song_url, headers)
-    if song_data is not None:
-        get_song_text(song_data)
+    song_data = get_response_json(f'{song_url}/arrangements', headers)
+    lyrics = song_data['data'][0]['attributes'].get('lyrics', 'Текст пісні відсутній.')
+    return lyrics
