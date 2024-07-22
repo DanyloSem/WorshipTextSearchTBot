@@ -4,8 +4,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
-import app.keyboards as kb
-import app.song_search as ss
+import bot.keyboards as kb
+import bot.song_search as ss
 
 router = Router()
 
@@ -44,7 +44,7 @@ async def process_search_query(message: Message, state: FSMContext):
             inline_keyboard = await kb.inline_songs(chunk)
             start = i * 20 + 1
             end = min((i + 1) * 20, total_songs)
-            await message.answer(f'Результати пошуку: {start} - {end}', reply_markup=inline_keyboard)
+            await message.answer(f'Пісні від {start} до {end}:', reply_markup=inline_keyboard)
     else:
         await message.answer('Жодної пісні не знайдено.')
         await message.answer('Оберіть метод пошуку:', reply_markup=kb.search_method_kb)

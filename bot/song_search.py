@@ -1,16 +1,17 @@
+import os
 import requests
 import base64
-import sys
-sys.path.append('..')
-from config import APP_ID, SECRET
+
+from dotenv import load_dotenv
 
 
-LYRICS_SEARCH_URL = 'https://api.planningcenteronline.com/services/v2/songs?order=title&where[lyrics]='
 TITLE_SEARCH_URL = 'https://api.planningcenteronline.com/services/v2/songs?order=title&where[title]='
+LYRICS_SEARCH_URL = 'https://api.planningcenteronline.com/services/v2/songs?order=title&where[lyrics]='
 
 def get_headers():
-    app_id = APP_ID
-    secret = SECRET
+    load_dotenv()
+    app_id = os.getenv('APP_ID')
+    secret = os.getenv('SECRET')
 
     credentials = f'{app_id}:{secret}'
     credentials_b64 = base64.b64encode(credentials.encode()).decode()
