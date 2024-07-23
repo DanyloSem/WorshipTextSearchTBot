@@ -1,5 +1,5 @@
 import os
-from aiohttp import web  # Переконайтеся, що імпортовано web з aiohttp
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update
 
@@ -28,9 +28,3 @@ def create_app(bot: Bot, dp: Dispatcher):
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     return app
-
-# curl -F "url=https://expert-garbanzo-pjr9qqj976qw36jgq-8080.app.github.dev/webhook" https://api.telegram.org/bot6812047735:AAGrM8maAsy4phXcVcRkJHCYSfzDw9k--Lw/setWebhook
-# curl https://api.telegram.org/bot6812047735:AAGrM8maAsy4phXcVcRkJHCYSfzDw9k--Lw/getWebhookInfo
-# curl -X POST https://expert-garbanzo-pjr9qqj976qw36jgq-8080.app.github.dev/webhook -d '{"update_id": 1, "message": {"message_id": 1, "from": {"id": 1, "is_bot": false, "first_name": "John", "last_name": "Doe", "username": "johndoe", "language_code": "en"}, "chat": {"id": 1, "first_name": "John", "last_name": "Doe", "username": "johndoe", "type": "private"}, "date": 1615464368, "text": "Hello World!"}}'
-
-
