@@ -2,14 +2,14 @@ import os
 import requests
 import base64
 
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
 
 TITLE_SEARCH_URL = 'https://api.planningcenteronline.com/services/v2/songs?order=title&where[title]='
 LYRICS_SEARCH_URL = 'https://api.planningcenteronline.com/services/v2/songs?order=title&where[lyrics]='
 
 def get_headers():
-    load_dotenv()
+    #load_dotenv()
     app_id = os.getenv('APP_ID')
     secret = os.getenv('SECRET')
 
