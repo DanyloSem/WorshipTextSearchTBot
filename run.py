@@ -1,30 +1,32 @@
-import os
-import logging
+
 import asyncio
-#from dotenv import load_dotenv
-from aiohttp import web
+from config import TELEGRAM_TOKEN
+# from aiohttp import web
 from aiogram import Bot, Dispatcher
-from webhook import create_app
+# from webhook import create_app
 from bot.handlers import router
 
+
 async def main():
-    #load_dotenv()
-    bot = Bot(token=os.getenv('TOKEN'))
+    bot = Bot(token=TELEGRAM_TOKEN)
     dp = Dispatcher()
     dp.include_router(router)
 
-    app = create_app(bot, dp)
+    await bot.delete_webhook(drop_pending_updates=True)
 
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', int(os.getenv('PORT', 8080)))
-    await site.start()
+    await dp.start_polling(bot)
 
-    print(f"Bot is running on {os.getenv('WEBHOOK_URL')}")
-    await asyncio.Event().wait()
+    # app = create_app(bot, dp)
+
+    # runner = web.AppRunner(app)
+    # await runner.setup()
+    # site = web.TCPSite(runner, '0.0.0.0', int(os.getenv('PORT', 8080)))
+    # await site.start()
+
+    # print(f"Bot is running on {os.getenv('WEBHOOK_URL')}")
+    # await asyncio.Event().wait()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

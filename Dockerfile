@@ -1,5 +1,5 @@
 # Вказуємо базовий образ, який містить Python
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Вказуємо директорію в контейнері для нашого проекту
 WORKDIR /worship_text_tbot
