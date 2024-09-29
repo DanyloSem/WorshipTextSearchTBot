@@ -27,7 +27,7 @@ async def cmd_start(message: Message, state: FSMContext):
 async def process_search_method(message: Message, state: FSMContext):
     search_method = message.text
 
-    if search_method in ['📚Пошук за назвою', '📝Пошук за текстом']:
+    if search_method in ['📚 Пошук за назвою', '📝 Пошук за текстом']:
         await state.update_data(search_method=search_method)
         await message.answer('Введіть текст для пошуку:', reply_markup=kb.remove_keyboard)
         await state.set_state(UserState.search_query)
@@ -36,61 +36,81 @@ async def process_search_method(message: Message, state: FSMContext):
 
 
 def format_songs_list(chunk):
-    return "\n".join([f"▶️{index}. {song['title']}\nДетальніше:{song['url']}\n" for index, song in chunk.items()])
+    return "\n".join([f"▶️ {index}. {song['title']}\nТекст: {song['url']}\n" for index, song in chunk.items()])
 
 
 def create_pagination_keyboard(current_page, total_pages):
     buttons = []
 
-    # Перша сторінка
-    if current_page == 0 and total_pages >= 5:
-        buttons.append(InlineKeyboardButton(text="-1-", callback_data="page_0"))
-        buttons.append(InlineKeyboardButton(text=">2", callback_data="page_1"))
-        buttons.append(InlineKeyboardButton(text="3", callback_data="page_2"))
-        buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
-        buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
-    # Друга сторінка
-    elif current_page == 1 and total_pages > 5:
-        buttons.append(InlineKeyboardButton(text="1<", callback_data="page_0"))
-        buttons.append(InlineKeyboardButton(text="-2-", callback_data="page_1"))
-        buttons.append(InlineKeyboardButton(text=">3", callback_data="page_2"))
-        buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
-        buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
-    # Передостання сторінка
-    elif current_page == total_pages - 2 and total_pages > 5:
-        buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-        buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
-        buttons.append(InlineKeyboardButton(text=f"<{total_pages - 2}", callback_data=f"page_{total_pages - 3}"))
-        buttons.append(InlineKeyboardButton(text=f"-{total_pages - 1}-", callback_data=f"page_{total_pages - 2}"))
-        buttons.append(InlineKeyboardButton(text=f">{total_pages}", callback_data=f"page_{total_pages - 1}"))
-    # Остання сторінка
-    elif current_page == total_pages - 1 and total_pages > 5:
-        buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-        buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
-        buttons.append(InlineKeyboardButton(text=f"{total_pages - 2}", callback_data=f"page_{total_pages - 3}"))
-        buttons.append(InlineKeyboardButton(text=f"<{total_pages - 1}", callback_data=f"page_{total_pages - 2}"))
-        buttons.append(InlineKeyboardButton(text=f"-{total_pages}-", callback_data=f"page_{total_pages - 1}"))
+    # Якщо сторінок 5 або менше
+    if total_pages <= 5:
+        for i in range(total_pages):
+            if i == current_page:
+                buttons.append(InlineKeyboardButton(text=f"-{i + 1}-", callback_data=f"page_{i}"))
+            else:
+                buttons.append(InlineKeyboardButton(text=f"{i + 1}", callback_data=f"page_{i}"))
     else:
         # Перша сторінка
-        if current_page > 1:
-            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-
-        # Попередня сторінка
-        if current_page > 0:
-            buttons.append(InlineKeyboardButton(text=f"<{current_page}", callback_data=f"page_{current_page - 1}"))
-
-        # Теперішня сторінка
-        buttons.append(InlineKeyboardButton(text=f"-{current_page + 1}-", callback_data=f"page_{current_page}"))
-
-        # Наступна сторінка
-        if current_page < total_pages - 1:
-            buttons.append(InlineKeyboardButton(text=f">{current_page + 2}", callback_data=f"page_{current_page + 1}"))
-
-        # Остання сторінка
-        if current_page < total_pages - 2:
+        if current_page == 0 and total_pages > 5:
+            buttons.append(InlineKeyboardButton(text="-1-", callback_data="page_0"))
+            buttons.append(InlineKeyboardButton(text="2", callback_data="page_1"))
+            buttons.append(InlineKeyboardButton(text="3", callback_data="page_2"))
+            buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
             buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
+        # Друга сторінка
+        elif current_page == 1 and total_pages > 5:
+            buttons.append(InlineKeyboardButton(text="1", callback_data="page_0"))
+            buttons.append(InlineKeyboardButton(text="-2-", callback_data="page_1"))
+            buttons.append(InlineKeyboardButton(text="3", callback_data="page_2"))
+            buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
+            buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
+        # Третя сторінка
+        elif current_page == 2 and total_pages > 5:
+            buttons.append(InlineKeyboardButton(text="1", callback_data="page_0"))
+            buttons.append(InlineKeyboardButton(text="2", callback_data="page_1"))
+            buttons.append(InlineKeyboardButton(text="-3-", callback_data="page_2"))
+            buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
+            buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
+        # Третя з кінця сторінка
+        elif current_page == total_pages - 3 and total_pages > 5:
+            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
+            buttons.append(InlineKeyboardButton(text=f"-{total_pages - 2}-", callback_data=f"page_{total_pages - 3}"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 1}", callback_data=f"page_{total_pages - 2}"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages}", callback_data=f"page_{total_pages - 1}"))
+        # Передостання сторінка
+        elif current_page == total_pages - 2 and total_pages > 5:
+            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 2}", callback_data=f"page_{total_pages - 3}"))
+            buttons.append(InlineKeyboardButton(text=f"-{total_pages - 1}-", callback_data=f"page_{total_pages - 2}"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages}", callback_data=f"page_{total_pages - 1}"))
+        # Остання сторінка
+        elif current_page == total_pages - 1 and total_pages > 5:
+            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 2}", callback_data=f"page_{total_pages - 3}"))
+            buttons.append(InlineKeyboardButton(text=f"{total_pages - 1}", callback_data=f"page_{total_pages - 2}"))
+            buttons.append(InlineKeyboardButton(text=f"-{total_pages}-", callback_data=f"page_{total_pages - 1}"))
+        else:
+            # Перша сторінка
+            if current_page > 1:
+                buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
+            # Попередня сторінка
+            if current_page > 0:
+                buttons.append(InlineKeyboardButton(text=f"{current_page}", callback_data=f"page_{current_page - 1}"))
+            # Теперішня сторінка
+            buttons.append(InlineKeyboardButton(text=f"-{current_page + 1}-", callback_data=f"page_{current_page}"))
+            # Наступна сторінка
+            if current_page < total_pages - 1:
+                buttons.append(InlineKeyboardButton(text=f"{current_page + 2}", callback_data=f"page_{current_page + 1}"))
+            # Остання сторінка
+            if current_page < total_pages - 2:
+                buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons])
+    # Додати кнопку повернення до етапу вибору методу пошуку
+    return_button = InlineKeyboardButton(text="🔍 Повернутися до пошуку", callback_data="return_to_search_method")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons, [return_button]])
     return keyboard
 
 
@@ -107,11 +127,12 @@ async def process_search_query(message: Message, state: FSMContext):
         chunk = chunks[0]
         songs_list = format_songs_list(chunk)
         pagination_keyboard = create_pagination_keyboard(0, len(chunks))
-        answer = f"📖Пісні від 1 до {min(7, len(songs_dict))}:\n\n{songs_list}"
+        answer = f"📖 Пісні від 1 до {min(7, len(songs_dict))}:\n\n{songs_list}"
         await message.answer(answer, reply_markup=pagination_keyboard)
     else:
         await message.answer('Жодної пісні не знайдено.', reply_markup=kb.search_method)
         await state.set_state(UserState.search_method)
+
 
 @router.callback_query(lambda c: c.data and c.data.startswith('page_'))
 async def process_page_callback(callback_query: CallbackQuery, state: FSMContext):
@@ -124,7 +145,7 @@ async def process_page_callback(callback_query: CallbackQuery, state: FSMContext
         chunk = chunks[page]
         songs_list = format_songs_list(chunk)
         pagination_keyboard = create_pagination_keyboard(page, len(chunks))
-        answer = f"📖Пісні від {page*7+1} до {min((page+1)*7, len(songs_dict))}:\n\n{songs_list}"
+        answer = f"📖 Пісні від {page*7+1} до {min((page+1)*7, len(songs_dict))}:\n\n{songs_list}"
         await callback_query.message.edit_text(answer, reply_markup=pagination_keyboard)
     await callback_query.answer()
 
@@ -140,3 +161,10 @@ async def process_song_selection(callback_query: CallbackQuery, state: FSMContex
 
     await callback_query.message.answer('Оберіть іншу пісню або метод пошуку:', reply_markup=kb.search_method)
     await state.set_state(UserState.search_method)
+
+
+@router.callback_query(lambda c: c.data == "return_to_search_method")
+async def return_to_search_method(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.message.answer('Оберіть метод пошуку:', reply_markup=kb.search_method)
+    await state.set_state(UserState.search_method)
+    await callback_query.answer()

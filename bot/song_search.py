@@ -26,10 +26,10 @@ class SongSearchService:
         return headers
 
     def choose_search(self, search_data):
-        if search_data['search_method'] == '📚Пошук за назвою':
+        if search_data['search_method'] == '📚 Пошук за назвою':
             return f'{self.url}[title]={search_data['search_text']}'
 
-        elif search_data['search_method'] == '📝Пошук за текстом':
+        elif search_data['search_method'] == '📝 Пошук за текстом':
             return f'{self.url}[lyrics]={search_data['search_text']}'
 
     def fetch_songs_dict(self, song_data, songs_dict):

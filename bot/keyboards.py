@@ -6,8 +6,8 @@ remove_keyboard = ReplyKeyboardRemove()
 
 search_method = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text='📚Пошук за назвою')],
-        [KeyboardButton(text='📝Пошук за текстом')]
+        [KeyboardButton(text='📚 Пошук за назвою')],
+        [KeyboardButton(text='📝 Пошук за текстом')]
     ],
     resize_keyboard=True,
     # input_field_placeholder='Оберіть метод пошуку:'
