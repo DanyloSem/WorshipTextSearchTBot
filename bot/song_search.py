@@ -37,10 +37,11 @@ class SongSearchService:
         for song in song_data['data']:
             song_title = song['attributes']['title']
             song_url = song['links']['self']
+            song_id = song_url.split('/')[-1]
             index += 1
             songs_dict[index] = {
                 'title': song_title,
-                'url': song_url
+                'id': song_id
             }
         return songs_dict
 
@@ -57,7 +58,7 @@ class SongSearchService:
         logger.info(f'Songs dict: {songs_dict}')
         return songs_dict
 
-    def get_song_text(self, song_url):
-        song_data = self._get_response_json(f'{song_url}/arrangements')
+    def get_song_text(self, song_id):
+        song_data = self._get_response_json(f'https://api.planningcenteronline.com/services/v2/songs/{song_id}/arrangements')
         lyrics = song_data['data'][0]['attributes'].get('lyrics', 'Текст пісні відсутній.')
         return lyrics
