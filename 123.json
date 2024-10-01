@@ -1,0 +1,254 @@
+[
+    {
+        "type": "Song",
+        "id": "24406773",
+        "attributes": {
+            "admin": null,
+            "author": "Michael W. Smith",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-09T22:39:06Z",
+            "hidden": false,
+            "last_scheduled_at": "2023-06-04T11:00:00Z",
+            "last_scheduled_short_dates": "4 Jun 2023",
+            "notes": null,
+            "themes": null,
+            "title": "Дощ зцілення / Anthem? / Healing Rain",
+            "updated_at": "2023-06-09T22:39:39Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24406773"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24406794",
+        "attributes": {
+            "admin": null,
+            "author": "Michael W. Smith",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-09T22:44:10Z",
+            "hidden": false,
+            "last_scheduled_at": "2024-06-23T11:00:00Z",
+            "last_scheduled_short_dates": "23 Jun 2024",
+            "notes": null,
+            "themes": null,
+            "title": "Лийся дощ / Let it Rain",
+            "updated_at": "2023-06-09T22:44:38Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24406794"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24393703",
+        "attributes": {
+            "admin": null,
+            "author": "Planetshakers",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-07T13:10:24Z",
+            "hidden": false,
+            "last_scheduled_at": "2024-06-23T11:00:00Z",
+            "last_scheduled_short_dates": "23 Jun 2024",
+            "notes": null,
+            "themes": null,
+            "title": "Танцюю під дощем / Fall on me",
+            "updated_at": "2023-06-07T13:10:54Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24393703"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24393321",
+        "attributes": {
+            "admin": null,
+            "author": "Planetshakers",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-07T11:01:09Z",
+            "hidden": false,
+            "last_scheduled_at": "2023-07-29T09:00:00Z",
+            "last_scheduled_short_dates": "29 Jul 2023",
+            "notes": null,
+            "themes": null,
+            "title": "Turn it up",
+            "updated_at": "2023-07-22T15:35:29Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24393321"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408605",
+        "attributes": {
+            "admin": null,
+            "author": null,
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T15:32:20Z",
+            "hidden": false,
+            "last_scheduled_at": null,
+            "last_scheduled_short_dates": null,
+            "notes": null,
+            "themes": null,
+            "title": "Ісус заплатив",
+            "updated_at": "2023-06-10T15:32:20Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408605"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24393523",
+        "attributes": {
+            "admin": null,
+            "author": "Hillsong",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-07T12:16:21Z",
+            "hidden": false,
+            "last_scheduled_at": null,
+            "last_scheduled_short_dates": null,
+            "notes": null,
+            "themes": null,
+            "title": "Більше за усі скарби Землі / Лучше чем богатства всей земли / Better Than Life",
+            "updated_at": "2023-06-07T12:17:21Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24393523"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408407",
+        "attributes": {
+            "admin": null,
+            "author": null,
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T14:56:52Z",
+            "hidden": false,
+            "last_scheduled_at": null,
+            "last_scheduled_short_dates": null,
+            "notes": null,
+            "themes": null,
+            "title": "Завжди",
+            "updated_at": "2023-06-10T14:56:52Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408407"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408501",
+        "attributes": {
+            "admin": null,
+            "author": "Michael W. Smith",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T15:13:20Z",
+            "hidden": false,
+            "last_scheduled_at": null,
+            "last_scheduled_short_dates": null,
+            "notes": null,
+            "themes": null,
+            "title": "Молю прийди / I'll Wait For You",
+            "updated_at": "2023-06-10T15:13:46Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408501"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408232",
+        "attributes": {
+            "admin": null,
+            "author": "Michael W. Smith",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T13:57:18Z",
+            "hidden": false,
+            "last_scheduled_at": "2024-08-04T11:00:00Z",
+            "last_scheduled_short_dates": "4 Aug 2024",
+            "notes": null,
+            "themes": null,
+            "title": "Поклич Його / Троянда / Sky Spills Over",
+            "updated_at": "2024-02-26T14:22:19Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408232"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408535",
+        "attributes": {
+            "admin": null,
+            "author": null,
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T15:18:49Z",
+            "hidden": false,
+            "last_scheduled_at": null,
+            "last_scheduled_short_dates": null,
+            "notes": null,
+            "themes": null,
+            "title": "Прагну я Тебе",
+            "updated_at": "2023-06-10T15:18:49Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408535"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408093",
+        "attributes": {
+            "admin": null,
+            "author": null,
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T13:10:03Z",
+            "hidden": false,
+            "last_scheduled_at": null,
+            "last_scheduled_short_dates": null,
+            "notes": null,
+            "themes": null,
+            "title": "Святий Господь торкнись мене",
+            "updated_at": "2023-06-10T13:10:03Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408093"
+        }
+    },
+    {
+        "type": "Song",
+        "id": "24408156",
+        "attributes": {
+            "admin": null,
+            "author": "Kari Jobe",
+            "ccli_number": null,
+            "copyright": null,
+            "created_at": "2023-06-10T13:30:33Z",
+            "hidden": false,
+            "last_scheduled_at": "2023-10-08T11:00:00Z",
+            "last_scheduled_short_dates": "8 Oct 2023",
+            "notes": null,
+            "themes": null,
+            "title": "Цілитель / Healer",
+            "updated_at": "2024-08-10T12:23:11Z"
+        },
+        "links": {
+            "self": "https://api.planningcenteronline.com/services/v2/songs/24408156"
+        }
+    }
+]

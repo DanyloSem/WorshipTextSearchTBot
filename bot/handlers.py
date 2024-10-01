@@ -1,6 +1,7 @@
+import hashlib
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineQuery, InputTextMessageContent, InlineQueryResultArticle
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from bot import keyboards as kb
@@ -36,6 +37,37 @@ async def display_songs_list(message: Message, state: FSMContext):
     else:
         await message.answer('Жодної пісні не знайдено.', reply_markup=kb.search_method)
         await state.set_state(UserState.search_method)
+
+
+@router.inline_query()
+async def inline_echo(inline_query: InlineQuery):
+    # inline_query - це об'єкт, який містить наступні параметри:
+    # inline_query.id - унікальний ідентифікатор запиту
+    # inline_query.query - текст запиту
+    # і інші параметри, які можна переглянути в документації
+
+    # Отримуємо текст користувача:
+    text = inline_query.query
+    if not text:
+        text = 'Перелік пісень по замовчуванню, або заглушка типу "Введіть текст для пошуку"'
+
+    # Генеруємо унікальний ідентифікатор для результату:
+    result_id: str = hashlib.md5(text.encode()).hexdigest()
+
+    # Cтворюємо об'єкт InputTextMessageContent який містить відповідь на запит:
+    input_content = InputTextMessageContent(message_text=text)
+
+    # Формуємо результат запиту:
+    item = InlineQueryResultArticle(
+        id=result_id,  # Унікальний ідентифікатор результату (може бути створений як завгодно)
+        input_message_content=input_content,  # Вміст результату
+        title='Назва пісні',  # Заголовок результату
+        description='Опис пісні',  # Опис результату
+        url='https://www.google.com',  # Посилання на результат
+        thumb_url='https://www.google.com/favicon.ico'  # Посилання на зображення
+    )
+    # Відправляємо результат, в якому results - список з результатами:
+    await inline_query.answer(results=[item])
 
 
 @router.message(F.text.startswith('/id_'))
