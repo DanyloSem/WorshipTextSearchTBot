@@ -41,7 +41,7 @@ class InlineSearch:
         def fetch_songs(param):
             search_url = f'{self.url}[{param}]={corrected_word}'
             response = self._get_response_json(search_url)
-            return response['data']
+            return response.get('data', [])
 
         with concurrent.futures.ThreadPoolExecutor() as executor:
             future_title = executor.submit(fetch_songs, 'title')
@@ -60,5 +60,5 @@ class InlineSearch:
         return all_songs
 
 
-# test = TestService()
-# print(test.get_all_songs_by_title('Лрбов твоя'))
+test = InlineSearch()
+print(test.get_songs_by_text('Радий я любить він мене'))
