@@ -6,9 +6,10 @@ import concurrent.futures
 import language_tool_python
 
 
-class TestService:
+class InlineSearch:
     def __init__(self):
         self.headers = self._get_headers()
+        self.tool = language_tool_python.LanguageTool('uk')
         self.url = 'https://api.planningcenteronline.com/services/v2/songs?per_page=100&order=title&where'
 
     def _get_response_json(self, request_url):
@@ -28,12 +29,11 @@ class TestService:
         return headers
 
     def correct_word(self, text):
-        tool = language_tool_python.LanguageTool('uk')
-        matches = tool.check(text)
+        matches = self.tool.check(text)
         corrected_text = language_tool_python.utils.correct(text, matches)
         return corrected_text
 
-    def get_all_songs_by_title(self, word):
+    def get_songs_by_text(self, word):
         # Перевірка орфографії та виправлення слова
         corrected_word = self.correct_word(word)
         print(f'Corrected word: {corrected_word}')
@@ -60,5 +60,5 @@ class TestService:
         return all_songs
 
 
-test = TestService()
-print(test.get_all_songs_by_title('Лрбов твоя'))
+# test = TestService()
+# print(test.get_all_songs_by_title('Лрбов твоя'))

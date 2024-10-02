@@ -7,6 +7,7 @@ from aiogram import Bot, Dispatcher
 from bot.handlers import router
 
 
+
 async def main():
     bot = Bot(token=TELEGRAM_TOKEN)
     dp = Dispatcher()

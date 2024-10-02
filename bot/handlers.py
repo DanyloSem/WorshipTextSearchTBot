@@ -7,10 +7,12 @@ from aiogram.fsm.context import FSMContext
 from bot import keyboards as kb
 from bot.song_search import SongSearchService
 from logs.log_config import logger
+from bot.inline_search import InlineSearch
 
 
 router = Router()
 sss = SongSearchService()
+inlinesearch = InlineSearch()
 
 
 class UserState(StatesGroup):
@@ -21,6 +23,9 @@ class UserState(StatesGroup):
 
 def format_songs_list(chunk):
     return "\n".join([f"▶️ {index}. {song['title']}\nТекст пісні: /id_{song['id']}\n" for index, song in chunk.items()])
+
+def generate_unique_id(text):
+    return hashlib.md5(text.encode()).hexdigest()
 
 
 async def display_songs_list(message: Message, state: FSMContext):
@@ -48,26 +53,31 @@ async def inline_echo(inline_query: InlineQuery):
 
     # Отримуємо текст користувача:
     text = inline_query.query
-    if not text:
-        text = 'Перелік пісень по замовчуванню, або заглушка типу "Введіть текст для пошуку"'
+    # if not text:
+    #     text = "Введіть текст для пошуку"
 
-    # Генеруємо унікальний ідентифікатор для результату:
-    result_id: str = hashlib.md5(text.encode()).hexdigest()
+    songs_list = inlinesearch.get_songs_by_text(text)
 
-    # Cтворюємо об'єкт InputTextMessageContent який містить відповідь на запит:
-    input_content = InputTextMessageContent(message_text=text)
+    results = []
+    for song in songs_list:
+        result_id = generate_unique_id(song['attributes']['title'])
+        logger.info(f"Result ID: {result_id}")
+        logger.info(f"Song_id: {song['id']}")
+        song_text = sss.get_song_text(song['id'])
+        logger.info(f"Song text: {song_text}")
+        input_content = InputTextMessageContent(message_text=song_text)
 
-    # Формуємо результат запиту:
-    item = InlineQueryResultArticle(
-        id=result_id,  # Унікальний ідентифікатор результату (може бути створений як завгодно)
-        input_message_content=input_content,  # Вміст результату
-        title='Назва пісні',  # Заголовок результату
-        description='Опис пісні',  # Опис результату
-        url='https://www.google.com',  # Посилання на результат
-        thumb_url='https://www.google.com/favicon.ico'  # Посилання на зображення
-    )
+        result = InlineQueryResultArticle(
+            id=result_id,
+            input_message_content=input_content,
+            title=song['attributes']['title'],
+            # description='Опис пісні',
+            # url='https://www.google.com',
+            # thumb_url='https://www.google.com/favicon.ico'
+        )
+        results.append(result)
     # Відправляємо результат, в якому results - список з результатами:
-    await inline_query.answer(results=[item])
+    await inline_query.answer(results=results)
 
 
 @router.message(F.text.startswith('/id_'))
