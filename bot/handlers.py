@@ -1,4 +1,3 @@
-import hashlib
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, CallbackQuery, InlineQuery, InputTextMessageContent, InlineQueryResultArticle
@@ -8,8 +7,6 @@ from bot import keyboards as kb
 from bot.song_search import SongSearchService
 from logs.log_config import logger
 from bot.inline_search import InlineSearch
-import concurrent.futures
-
 
 router = Router()
 sss = SongSearchService()
@@ -24,13 +21,6 @@ class UserState(StatesGroup):
 
 def format_songs_list(chunk):
     return "\n".join([f"▶️ {index}. {song['title']}\nТекст пісні: /id_{song['id']}\n" for index, song in chunk.items()])
-
-def generate_unique_id(text):
-    return hashlib.md5(text.encode()).hexdigest()
-
-def fetch_song_text(song_id):
-    # Функція для отримання тексту пісні
-    return sss.get_song_text(song_id)
 
 
 async def display_songs_list(message: Message, state: FSMContext):
@@ -53,40 +43,23 @@ async def display_songs_list(message: Message, state: FSMContext):
 async def inline_echo(inline_query: InlineQuery):
     # Отримуємо текст користувача:
     text = inline_query.query
-
-    songs_list = inlinesearch.get_songs_by_text(text)
-
+    songs_ids = inlinesearch.search_songs(text)
     results = []
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Виконуємо завдання паралельно
-        future_to_song = {executor.submit(fetch_song_text, song['id']): song for song in songs_list}
-
-        for future in concurrent.futures.as_completed(future_to_song):
-            song = future_to_song[future]
-            try:
-                song_text = future.result()
-            except Exception as exc:
-                logger.error(f"Помилка при отриманні тексту пісні {song['id']}: {exc}")
-                song_text = "Текст пісні не знайдено."
-
-            result_id = generate_unique_id(song['attributes']['title'])
-            logger.info(f"Result ID: {result_id}")
-            logger.info(f"Song_id: {song['id']}")
-            logger.info(f"Song text: {song_text}")
-
-            input_content = InputTextMessageContent(message_text=song_text)
-
-            result = InlineQueryResultArticle(
-                id=result_id,
-                input_message_content=input_content,
-                title=song['attributes']['title'],
-                # description='Опис пісні',
-                # url='https://www.google.com',
-                # thumb_url='https://www.google.com/favicon.ico'
-            )
-            results.append(result)
-
-    # Відправляємо результат, в якому results - список з результатами:
+    for song_id in songs_ids:
+        song_text = list(inlinesearch.songs_data[song_id].values())[0]
+        input_content = InputTextMessageContent(message_text=song_text)
+        
+        title = list(inlinesearch.songs_data[song_id].keys())[0]
+        
+        result = InlineQueryResultArticle(
+            id=song_id,
+            input_message_content=input_content,
+            title=title,
+            # description='Опис пісні',
+            # url='https://www.google.com',
+            # thumb_url='https://www.google.com/favicon.ico'
+        )
+        results.append(result)
     await inline_query.answer(results=results)
 
 

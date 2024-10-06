@@ -1,13 +1,21 @@
 from bot.song_search import SongSearchService
 import time
+import re
 import json
 
 
 class SongCollector(SongSearchService):
     def __init__(self):
         super().__init__()  # Initialize the parent class
-        self.songs_ids = self.collect_songs_ids()
-        self.songs_data = self.collect_songs_data()
+        # self.songs_ids = self.collect_songs_ids()
+        # self.songs_data = self.collect_songs_data()
+        self.songs_data = self.get_songs_from_json()
+        self.modified_songs = self.modify_songs()
+
+    def get_songs_from_json(self):
+        with open('songs_data.json', 'r', encoding='utf-8') as file:
+            songs = json.load(file)
+            return songs
 
     def collect_songs_ids(self):
         songs_ids = {}
@@ -34,10 +42,20 @@ class SongCollector(SongSearchService):
             print(f'Collected data for song #{index}: {song_title}')
         return songs_data
 
-    def save_songs_data_to_json(self, file_path):
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(self.songs_data, f, ensure_ascii=False, indent=4)
+    def modify_songs(self):
+        songs = self.songs_data
+        cleaned_songs = {}
+        for song_id, song_data in songs.items():
+            cleaned_song_data = {}
+            for key, value in song_data.items():
+                cleaned_key = self.clean_text(key)
+                cleaned_value = self.clean_text(value)
+                cleaned_song_data[cleaned_key] = cleaned_value
+            cleaned_songs[song_id] = cleaned_song_data
+        return cleaned_songs
 
-
-# Example usage:
-
+    def clean_text(self, text):
+        if not text:
+            return ''
+        # Видаляє всі розділові знаки, крім апострофів
+        return re.sub(r"[^\w\s'’]", '', text).lower()
