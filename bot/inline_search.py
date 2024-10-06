@@ -1,64 +1,60 @@
-import requests
-import base64
-# from logs.log_config import logger
-from config import CLIENT_ID, SECRET
-import concurrent.futures
 import language_tool_python
+import json
+import re
 
 
 class InlineSearch:
     def __init__(self):
-        self.headers = self._get_headers()
         self.tool = language_tool_python.LanguageTool('uk')
-        self.url = 'https://api.planningcenteronline.com/services/v2/songs?per_page=100&order=title&where'
+        self.cleaned_songs = self.clean_songs()
 
-    def _get_response_json(self, request_url):
-        response = requests.get(request_url, headers=self.headers)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print(f'Помилка {response.status_code}: {response.text}')
-            return None
-
-    def _get_headers(self):
-        credentials = f'{CLIENT_ID}:{SECRET}'
-        credentials_b64 = base64.b64encode(credentials.encode()).decode()
-        headers = {
-            'Authorization': f'Basic {credentials_b64}'
-        }
-        return headers
-
-    def correct_word(self, text):
+    def words_corrector(self, text):
         matches = self.tool.check(text)
         corrected_text = language_tool_python.utils.correct(text, matches)
-        return corrected_text
+        user_text = self.clean_text(corrected_text)
+        return user_text
 
-    def get_songs_by_text(self, word):
-        # Перевірка орфографії та виправлення слова
-        corrected_word = self.correct_word(word)
-        print(f'Corrected word: {corrected_word}')
+    def get_songs_from_json(self):
+        with open('songs_data.json', 'r', encoding='utf-8') as f:
+            songs = json.load(f)
+        return songs
 
-        def fetch_songs(param):
-            search_url = f'{self.url}[{param}]={corrected_word}'
-            response = self._get_response_json(search_url)
-            return response.get('data', [])
+    def clean_text(self, text):
+        if not text:
+            return ''
+        # Видаляє всі розділові знаки, крім апострофів
+        return re.sub(r"[^\w\s'’]", '', text).lower()
 
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_title = executor.submit(fetch_songs, 'title')
-            future_lyrics = executor.submit(fetch_songs, 'lyrics')
+    def clean_songs(self):
+        songs = self.get_songs_from_json()
+        cleaned_songs = {}
+        for song_id, song_data in songs.items():
+            cleaned_song_data = {}
+            for key, value in song_data.items():
+                cleaned_key = self.clean_text(key)
+                cleaned_value = self.clean_text(value)
+                cleaned_song_data[cleaned_key] = cleaned_value
+            cleaned_songs[song_id] = cleaned_song_data
+        return cleaned_songs
 
-            songs_by_title_list = future_title.result()
-            songs_by_lyrics_list = future_lyrics.result()
+    def search_songs(self, user_text):
+        query = self.words_corrector(user_text)
+        songs = self.cleaned_songs
+        results = []
+        for song_id, song_data in songs.items():
+            for title, lyrics in song_data.items():
+                if query in lyrics or query in title:
+                    results.append(song_id)
+                    if len(results) >= 50:  # Обмеження в 50 пісень
+                        break
+            if len(results) >= 50:  # Перевірка після внутрішнього циклу
+                break
+        return results
 
-        # Об'єднуємо списки
-        merged_songs = songs_by_title_list + songs_by_lyrics_list
 
-        # Використовуємо list comprehension для фільтрації унікальних пісень
-        unique_ids = set()
-        all_songs = [song for song in merged_songs if song['id'] not in unique_ids and not unique_ids.add(song['id'])]
-
-        return all_songs
-
-
-test = InlineSearch()
-print(test.get_songs_by_text('Радий я любить він мене'))
+if __name__ == "__main__":
+    search = InlineSearch()
+    query = "всім серцем"
+    results = search.search_songs(query)
+    for song_id in results:
+        print(song_id)
