@@ -42,24 +42,35 @@ async def display_songs_list(message: Message, state: FSMContext):
 @router.inline_query()
 async def inline_echo(inline_query: InlineQuery):
     # Отримуємо текст користувача:
-    text = inline_query.query
-    songs_ids = inlinesearch.search_songs(text)
-    results = []
-    for song_id in songs_ids:
-        song_text = list(inlinesearch.songs_data[song_id].values())[0]
-        input_content = InputTextMessageContent(message_text=song_text)
-        
-        title = list(inlinesearch.songs_data[song_id].keys())[0]
-        
-        result = InlineQueryResultArticle(
+    text = inline_query.query.strip()
+    if not text:
+        return
+
+    id_to_desc_dict = inlinesearch.search_songs(text)
+    if not id_to_desc_dict:
+        await inline_query.answer(
+            results=[
+                InlineQueryResultArticle(
+                    id='0',
+                    title='Пісню не знайдено',
+                    input_message_content=InputTextMessageContent(
+                        message_text='Пісню не знайдено. Спробуйте інший запит.'
+                        )
+                    )
+                ]
+            )
+
+    results = [
+        InlineQueryResultArticle(
             id=song_id,
-            input_message_content=input_content,
-            title=title,
-            # description='Опис пісні',
-            # url='https://www.google.com',
-            # thumb_url='https://www.google.com/favicon.ico'
+            input_message_content=InputTextMessageContent(
+                message_text=list(inlinesearch.songs_data[song_id].values())[0]
+            ),
+            title=list(inlinesearch.songs_data[song_id].keys())[0],
+            description=description
         )
-        results.append(result)
+        for song_id, description in id_to_desc_dict.items()
+    ]
     await inline_query.answer(results=results)
 
 
