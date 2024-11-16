@@ -39,38 +39,47 @@ async def display_songs_list(message: Message, state: FSMContext):
         await state.set_state(UserState.search_method)
 
 
+# Обробник для інлайн-запитів
 @router.inline_query()
 async def inline_echo(inline_query: InlineQuery):
     # Отримуємо текст користувача:
     text = inline_query.query.strip()
+    
+    # Якщо текст відсутній, повертаємо порожній результат:
     if not text:
         return
 
+    # Відправляємо текст для пошуку, отримуємо словник з результатами {id: description}
     id_to_desc_dict = inlinesearch.search_songs(text)
+    
+    # Якщо результат порожній, відправляємо повідомлення про відсутність результатів:
     if not id_to_desc_dict:
-        await inline_query.answer(
-            results=[
-                InlineQueryResultArticle(
-                    id='0',
-                    title='Пісню не знайдено',
-                    input_message_content=InputTextMessageContent(
-                        message_text='Пісню не знайдено. Спробуйте інший запит.'
-                        )
-                    )
-                ]
-            )
-
-    results = [
-        InlineQueryResultArticle(
-            id=song_id,
-            input_message_content=InputTextMessageContent(
-                message_text=list(inlinesearch.songs_data[song_id].values())[0]
+        results = [
+            InlineQueryResultArticle(
+                id='0',
+                title='Пісню не знайдено',
+                input_message_content=InputTextMessageContent(
+                    message_text='Пісню не знайдено. Спробуйте інший запит.'
+                )
             ),
-            title=list(inlinesearch.songs_data[song_id].keys())[0],
-            description=description
+        ]
+        await inline_query.answer(results=results)
+
+    # Якщо результати є, формуємо список результатів:
+    results = []
+    for song_id, description in id_to_desc_dict.items():
+        title = list(inlinesearch.songs_data[song_id].keys())[0]
+        title = inlinesearch.format_title(title)
+        results.append(
+            InlineQueryResultArticle(
+                id=song_id,
+                title=title,
+                input_message_content=InputTextMessageContent(
+                    message_text=list(inlinesearch.songs_data[song_id].values())[0]
+                ),
+                description=description
+            )
         )
-        for song_id, description in id_to_desc_dict.items()
-    ]
     await inline_query.answer(results=results)
 
 
@@ -148,3 +157,5 @@ async def return_to_search_method(callback_query: CallbackQuery, state: FSMConte
     await callback_query.message.answer('Оберіть метод пошуку:', reply_markup=kb.search_method)
     await state.set_state(UserState.search_method)
     await callback_query.answer()
+# Божий друг / Ти мій найкращий друг / Friend of
+# Немає неможливого / Нема нічого неможливого...
