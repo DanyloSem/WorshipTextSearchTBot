@@ -115,6 +115,6 @@ def get_search_router(song_search_service: SongSearchService) -> Router:
             user_id,
             message.text,
         )
-        await message.reply('`Оберіть пісню, або натисніть "🔍 Повернутися до пошуку".')
+        await message.reply('Будь ласка оберіть пісню, або натисніть:\n🔍 Повернутися до пошуку.')
 
     return router
