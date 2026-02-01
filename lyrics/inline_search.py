@@ -30,23 +30,23 @@ class InlineSearch:
         """Словник даних пісень для зворотної сумісності з обробниками."""
         return self._provider.songs_data
 
-    def search_songs(self, user_text: str) -> dict[str, str]:
+    def search_songs(self, user_text: str) -> list[tuple[str, str]]:
         """
-        Повертає словник {song_id: description} для інлайн-результатів.
+        Повертає список пар (song_id, description) для інлайн-результатів у порядку сортування.
 
-        Використовує спільний FuzzySearchService (LanguageTool + fuzzywuzzy).
+        Порядок: спочатку найточніший збіг, при однаковому score — за назвою (алфавіт).
 
         Args:
             user_text: Текст запиту користувача.
 
         Returns:
-            До 50 пар song_id -> фрагмент збігу.
+            До 50 пар (song_id, фрагмент збігу) у відсортованому порядку.
         """
         songs_data = self._provider.get_songs_data()
         results = self._fuzzy.search(user_text, songs_data, max_results=50)
-        id_to_desc = {r['song_id']: r['description'] for r in results}
-        logger.info('[LYRICS] search_songs результат: знайдено=%s', len(id_to_desc))
-        return id_to_desc
+        ordered = [(r['song_id'], r['description']) for r in results]
+        logger.info('[LYRICS] search_songs результат: знайдено=%s', len(ordered))
+        return ordered
 
     def format_title(self, title: str) -> str:
         """Обрізає назву до 40 символів для відображення в інлайн-результаті."""

@@ -24,13 +24,13 @@ def get_inline_router(inline_search: InlineSearch) -> Router:
             logger.debug('[INLINE] Порожній запит, ігноруємо')
             return
 
-        id_to_desc_dict = inline_search.search_songs(text)
+        ordered_songs = inline_search.search_songs(text)
         logger.info(
             '[INLINE] Пошук по локальній бібліотеці: знайдено результатів=%s',
-            len(id_to_desc_dict),
+            len(ordered_songs),
         )
 
-        if not id_to_desc_dict:
+        if not ordered_songs:
             logger.debug('[INLINE] Результатів немає, відповідь "Пісню не знайдено"')
             results = [
                 InlineQueryResultArticle(
@@ -41,11 +41,11 @@ def get_inline_router(inline_search: InlineSearch) -> Router:
                     ),
                 ),
             ]
-            await inline_query.answer(results=results)
+            await inline_query.answer(results=results, cache_time=0)
             return
 
         results = []
-        for song_id, description in id_to_desc_dict.items():
+        for song_id, description in ordered_songs:
             title = list(inline_search.songs_data[song_id].keys())[0]
             title = inline_search.format_title(title)
             lyrics = list(inline_search.songs_data[song_id].values())[0]
@@ -58,6 +58,6 @@ def get_inline_router(inline_search: InlineSearch) -> Router:
                 ),
             )
         logger.debug('[INLINE] Відповідь: results_count=%s', len(results))
-        await inline_query.answer(results=results)
+        await inline_query.answer(results=results, cache_time=0)
 
     return router

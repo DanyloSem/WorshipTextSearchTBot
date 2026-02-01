@@ -64,23 +64,23 @@ class FuzzySearchService:
         )
         return result
 
-    def _search_content(self, content: str | None, query: str) -> str | None:
-        """Шукає збіг у тексті (назва або лірика) і повертає фрагмент."""
+    def _search_content(self, content: str | None, query: str) -> tuple[str, int] | None:
+        """Шукає збіг у тексті (назва або лірика); повертає (фрагмент, score) або None."""
         if not content or not isinstance(content, str):
             return None
         match = process.extractOne(query, content.split('\n'), scorer=fuzz.partial_ratio)
         if match and match[1] > 75:
-            return match[0].strip()
+            return (match[0].strip(), match[1])
         return None
 
-    def _search_song_data(self, song_data: dict, query: str) -> str | None:
-        """Шукає збіг у назві або тексті однієї пісні; повертає фрагмент або None."""
-        # song_data = {title: lyrics}; шукаємо і в назві (key), і в тексті (value)
+    def _search_song_data(self, song_data: dict, query: str) -> tuple[str, int] | None:
+        """Шукає збіг у назві або тексті однієї пісні; повертає (фрагмент, найкращий score) або None."""
+        best: tuple[str, int] | None = None
         for content in (*song_data.keys(), *song_data.values()):
             result = self._search_content(content, query)
-            if result:
-                return result
-        return None
+            if result and (best is None or result[1] > best[1]):
+                best = result
+        return best
 
     def search(
         self,
@@ -90,6 +90,8 @@ class FuzzySearchService:
     ) -> list[dict]:
         """
         Повертає список збігів по фрагменту тексту (LanguageTool + fuzzywuzzy).
+
+        Відсортовано: спочатку за точністю збігу (спад), при однаковому score — за назвою (алфавіт).
 
         Args:
             user_text: Текст запиту користувача.
@@ -107,8 +109,9 @@ class FuzzySearchService:
         )
         results: list[dict] = []
         for song_id, song_data in songs_data.items():
-            description = self._search_song_data(song_data, query)
-            if description:
+            found = self._search_song_data(song_data, query)
+            if found:
+                description, score = found
                 title = next(iter(song_data.keys()), '')
                 lyrics = next(iter(song_data.values()), '')
                 results.append(
@@ -117,11 +120,21 @@ class FuzzySearchService:
                         'title': title,
                         'lyrics': lyrics,
                         'description': description,
+                        '_score': score,
                     },
                 )
-            if max_results is not None and len(results) >= max_results:
-                logger.debug('[FUZZY] search: досягнуто max_results=%s', max_results)
-                break
+        # При однаковому score — спочатку довший збіг (точніший), потім за назвою
+        results.sort(
+            key=lambda r: (
+                -r['_score'],
+                -len(r.get('description', '')),
+                (r.get('title') or '').lower(),
+            ),
+        )
+        for r in results:
+            r.pop('_score', None)
+        if max_results is not None:
+            results = results[:max_results]
         logger.info('[FUZZY] search результат: знайдено=%s', len(results))
         return results
 
