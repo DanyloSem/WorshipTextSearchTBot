@@ -7,3 +7,4 @@ lxml>=5.2.1
 language_tool_python==2.8.1
 requests>=2.31.0
 setuptools>=75.1.0
+whoosh>=2.7.4

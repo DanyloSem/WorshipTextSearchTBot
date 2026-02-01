@@ -1,0 +1,21 @@
+# Змінні середовища: TELEGRAM_TOKEN, PCO_CLIENT_ID, PCO_SECRET (або через .env).
+# songs_data.json монтується з кореня проєкту. Альтернатива: створити ./data і покласти туди
+# songs_data.json, тоді змінити volume на: ./data:/worship_text_tbot/data:ro
+# Образ бота збирається з Dockerfile і містить JRE (Java) для LanguageTool.
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worship-lyrics-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: '1'
+      SONGS_DATA_PATH: /worship_text_tbot/data/songs_data.json
+    volumes:
+      - ./songs_data.json:/worship_text_tbot/data/songs_data.json:ro
+    # Для webhook-режиму розкоментуйте порт та додайте WEBHOOK_URL у .env
+    # ports:
+    #   - "8080:8080"

@@ -8,7 +8,7 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 
-from bot.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
+from telegram.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
 
 
 class Keyboards:

@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from bot.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
 from logs.log_config import logger
+from planning_center.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
 
 if TYPE_CHECKING:
     from config import Config
@@ -46,14 +46,27 @@ class SongSearchService:
 
     async def _get_response_json(self, request_url: str) -> dict | None:
         """Виконує GET-запит і повертає JSON або None."""
+        logger.debug('[PCO] GET %s', request_url[:120] + '...' if len(request_url) > 120 else request_url)
         async with httpx.AsyncClient() as client:
             response = await client.get(request_url, headers=self._headers)
-            if response.status_code == 200:
-                return response.json()
-            logger.warning(
-                'Помилка API: status_code=%s, response=%s',
+            logger.info(
+                '[PCO] Відповідь API: status_code=%s, url_len=%s',
                 response.status_code,
-                response.text,
+                len(request_url),
+            )
+            if response.status_code == 200:
+                data = response.json()
+                meta = data.get('meta', {})
+                logger.debug(
+                    '[PCO] JSON meta: total_count=%s, next=%s',
+                    meta.get('total_count'),
+                    'next' in data.get('links', {}),
+                )
+                return data
+            logger.warning(
+                '[PCO] Помилка API: status_code=%s, response=%s',
+                response.status_code,
+                response.text[:500] if response.text else '',
             )
             return None
 
@@ -81,26 +94,38 @@ class SongSearchService:
         Повертає словник {index: {title, id}} пісень за пошуковими даними.
 
         Args:
-            search_data: Містить search_method та search_text.
+            search_data: Містить search_method ('title' або 'lyrics') та search_text.
 
         Returns:
             Словник пісень з пагінації API.
         """
+        logger.info(
+            '[PCO] get_songs_dict: search_method=%s, search_text=%s',
+            search_data.get('search_method'),
+            search_data.get('search_text'),
+        )
         search_url = self._choose_search_url(search_data)
         if not search_url:
+            logger.warning('[PCO] Не підтримуваний search_method, порожній результат')
             return {}
         songs_data = await self._get_response_json(search_url)
         if not songs_data:
+            logger.warning('[PCO] Перший запит повернув None або помилку')
             return {}
         songs_dict: dict = {}
         songs_dict = self._fetch_songs_dict(songs_data, songs_dict)
+        page = 1
+        logger.debug('[PCO] Сторінка %s: додано пісень=%s', page, len(songs_data.get('data', [])))
         while 'next' in songs_data.get('links', {}):
             next_url = songs_data['links']['next']
+            page += 1
             songs_data = await self._get_response_json(next_url)
             if not songs_data:
+                logger.warning('[PCO] Пагінація: сторінка %s повернула None', page)
                 break
             songs_dict = self._fetch_songs_dict(songs_data, songs_dict)
-        logger.info('Songs dict: %s', songs_dict)
+            logger.debug('[PCO] Сторінка %s: додано пісень=%s, всього=%s', page, len(songs_data.get('data', [])), len(songs_dict))
+        logger.info('[PCO] get_songs_dict результат: total_songs=%s', len(songs_dict))
         return songs_dict
 
     async def get_song_text(self, song_id: str) -> str | None:
@@ -114,7 +139,15 @@ class SongSearchService:
             Лірика або None при помилці.
         """
         url = f'{self.BASE_URL}/songs/{song_id}/arrangements'
+        logger.debug('[PCO] get_song_text: song_id=%s', song_id)
         song_data = await self._get_response_json(url)
         if not song_data or not song_data.get('data'):
+            logger.warning(
+                '[PCO] get_song_text: немає даних для song_id=%s, data_empty=%s',
+                song_id,
+                not (song_data and song_data.get('data')),
+            )
             return None
-        return song_data['data'][0]['attributes'].get('lyrics', 'Текст пісні відсутній.')
+        lyrics = song_data['data'][0]['attributes'].get('lyrics', 'Текст пісні відсутній.')
+        logger.debug('[PCO] get_song_text: song_id=%s, lyrics_len=%s', song_id, len(lyrics))
+        return lyrics

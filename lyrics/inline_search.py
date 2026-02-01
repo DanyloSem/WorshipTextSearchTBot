@@ -5,8 +5,8 @@ import re
 import language_tool_python
 from fuzzywuzzy import fuzz, process
 
-from bot.songs_data_provider import SongsDataProvider
 from logs.log_config import logger
+from lyrics.provider import SongsDataProvider
 
 
 class InlineSearch:
@@ -34,9 +34,17 @@ class InlineSearch:
         """Корекція граматики та очищення запиту."""
         if not text:
             return ''
+        logger.debug('[LYRICS] process_text вхід: text=%s', text)
         matches = self._tool.check(text)
         corrected = language_tool_python.utils.correct(text, matches)
-        return re.sub(r'[^\w\s]', '', corrected)
+        result = re.sub(r'[^\w\s]', '', corrected)
+        logger.debug(
+            '[LYRICS] process_text вихід: matches_count=%s, corrected=%s, result=%s',
+            len(matches),
+            corrected,
+            result,
+        )
+        return result
 
     def search_content(self, content: str | None, query: str) -> str | None:
         """Шукає збіги в тексті (назва або лірика) і повертає фрагмент."""
@@ -66,15 +74,22 @@ class InlineSearch:
             До 50 пар song_id -> фрагмент збігу.
         """
         query = self.process_text(user_text)
-        logger.debug('Processed query: %s', query)
+        logger.info(
+            '[LYRICS] search_songs: user_text=%s, query_after_process=%s',
+            user_text,
+            query,
+        )
         results: dict[str, str] = {}
         songs_data = self._provider.get_songs_data()
+        logger.debug('[LYRICS] search_songs: перебираємо пісень=%s', len(songs_data))
         for song_id, song_data in songs_data.items():
             result = self.search_song_data(song_data, query)
             if result:
                 results[song_id] = result
             if len(results) >= 50:
+                logger.debug('[LYRICS] search_songs: досягнуто ліміт 50 результатів')
                 break
+        logger.info('[LYRICS] search_songs результат: знайдено=%s', len(results))
         return results
 
     def format_title(self, title: str) -> str:

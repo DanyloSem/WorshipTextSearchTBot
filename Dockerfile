@@ -1,6 +1,12 @@
 # Вказуємо базовий образ, який містить Python
 FROM python:3.12-slim
 
+# Встановлення Java (потрібно для LanguageTool в lyrics/inline_search)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends default-jre-headless && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # Вказуємо директорію в контейнері для нашого проекту
 WORKDIR /worship_text_tbot
 
@@ -12,6 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Копіюємо весь код проекту в контейнер
 COPY . .
+
+# Папка для лог-файлу (якщо відсутня після COPY)
+RUN mkdir -p logs
 
 # Вказуємо команду для запуску нашого бота
 CMD ["python3", "run.py"]

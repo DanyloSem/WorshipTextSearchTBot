@@ -41,9 +41,9 @@ class Config:
         if not telegram_token:
             missing.append('TELEGRAM_TOKEN')
         if not client_id:
-            missing.append('CLIENT_ID')
+            missing.append('PCO_CLIENT_ID')
         if not secret:
-            missing.append('SECRET')
+            missing.append('PCO_SECRET')
         if missing:
             raise ValueError('Відсутні обов\'язкові змінні середовища: ' + ', '.join(missing))
 
