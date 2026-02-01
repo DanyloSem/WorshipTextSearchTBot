@@ -8,12 +8,23 @@ from fuzzywuzzy import fuzz, process
 from logs.log_config import logger
 
 
+def _is_mainly_english(text: str) -> bool:
+    """
+    Повертає True, якщо текст виглядає переважно англійською (немає кирилиці).
+
+    Використовується, щоб не «виправляти» англійські запити через LanguageTool (uk).
+    """
+    if not text.strip():
+        return True
+    cyrillic = sum(1 for c in text if '\u0400' <= c <= '\u04FF')
+    return cyrillic == 0
+
+
 class FuzzySearchService:
     """
-    Пошук пісень по фрагменту тексту: корекція (LanguageTool), регулярка, fuzzy-збіг.
+    Пошук пісень по фрагменту тексту: корекція (LanguageTool для української), регулярка, fuzzy-збіг.
 
-    Використовується для інлайн-пошуку та основного пошуку в чаті; приймає словник
-    пісень і повертає список збігів з фрагментом (description).
+    Англійські запити не проходять через LanguageTool — лише очищення для пошуку.
     """
 
     def __init__(self, language: str = 'uk') -> None:
@@ -25,7 +36,9 @@ class FuzzySearchService:
 
     def process_text(self, text: str) -> str:
         """
-        Корекція граматики та очищення запиту (прибирання розділових знаків).
+        Корекція граматики (лише для української) та очищення запиту (прибирання розділових знаків).
+
+        Якщо запит англійською — LanguageTool не використовується, щоб не спотворювати пошук.
 
         Args:
             text: Вхідний текст користувача.
@@ -36,6 +49,10 @@ class FuzzySearchService:
         if not text:
             return ''
         logger.debug('[FUZZY] process_text вхід: text=%s', text)
+        cleaned = re.sub(r'[^\w\s]', '', text.strip())
+        if _is_mainly_english(text):
+            logger.debug('[FUZZY] process_text вихід (EN, без LT): result=%s', cleaned)
+            return cleaned
         matches = self._tool.check(text)
         corrected = language_tool_python.utils.correct(text, matches)
         result = re.sub(r'[^\w\s]', '', corrected)
@@ -58,7 +75,8 @@ class FuzzySearchService:
 
     def _search_song_data(self, song_data: dict, query: str) -> str | None:
         """Шукає збіг у назві або тексті однієї пісні; повертає фрагмент або None."""
-        for content in song_data.values():
+        # song_data = {title: lyrics}; шукаємо і в назві (key), і в тексті (value)
+        for content in (*song_data.keys(), *song_data.values()):
             result = self._search_content(content, query)
             if result:
                 return result
