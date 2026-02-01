@@ -1,6 +1,9 @@
-aiogram==3.6.0
-aiohttp==3.9.5
-lxml==5.2.1
-requests==2.31.0
-setuptools==75.1.0
+# aiogram 3.24+ тягне pydantic з готовими колесами під Python 3.13 (без збірки pydantic-core з Rust)
+aiogram>=3.24.0,<4
+aiohttp>=3.9.5
+fuzzywuzzy==0.18.0
+httpx>=0.27.2
+lxml>=5.2.1
 language_tool_python==2.8.1
+requests>=2.31.0
+setuptools>=75.1.0

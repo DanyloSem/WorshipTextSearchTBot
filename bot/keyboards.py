@@ -1,101 +1,84 @@
-from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton,
-                           ReplyKeyboardRemove, InlineKeyboardButton,
-                           InlineKeyboardMarkup)
-# from aiogram.utils.keyboard import InlineKeyboardBuilder
+"""Клавіатури бота: reply та inline з пагінацією."""
 
-remove_keyboard = ReplyKeyboardRemove()
-
-search_method = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text='📚 Пошук за назвою')],
-        [KeyboardButton(text='📝 Пошук за текстом')]
-    ],
-    resize_keyboard=True,
-    # input_field_placeholder='Оберіть метод пошуку:'
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
 )
 
-# async def inline_songs(songs_dict):
-#     keyboard = InlineKeyboardBuilder()
-#     for song_id, song_info in songs_dict.items():
-#         keyboard.add(
-#             InlineKeyboardButton(
-#                 text=f'{song_id}. {song_info["title"]}',
-#                 callback_data=f'{song_info["url"]}'
-#             )
-#         )
-#     return keyboard.adjust(1).as_markup()
+from bot.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
 
 
-def create_pagination_keyboard(current_page, total_pages):
-    buttons = []
+class Keyboards:
+    """
+    Константи розміток та фабрика клавіатури пагінації.
 
-    # Якщо сторінок 5 або менше
-    if total_pages <= 5:
-        for i in range(total_pages):
-            if i == current_page:
-                buttons.append(InlineKeyboardButton(text=f"-{i + 1}-", callback_data=f"page_{i}"))
-            else:
-                buttons.append(InlineKeyboardButton(text=f"{i + 1}", callback_data=f"page_{i}"))
-    else:
-        # Перша сторінка
-        if current_page == 0 and total_pages > 5:
-            buttons.append(InlineKeyboardButton(text="-1-", callback_data="page_0"))
-            buttons.append(InlineKeyboardButton(text="2", callback_data="page_1"))
-            buttons.append(InlineKeyboardButton(text="3", callback_data="page_2"))
-            buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
-            buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
-        # Друга сторінка
-        elif current_page == 1 and total_pages > 5:
-            buttons.append(InlineKeyboardButton(text="1", callback_data="page_0"))
-            buttons.append(InlineKeyboardButton(text="-2-", callback_data="page_1"))
-            buttons.append(InlineKeyboardButton(text="3", callback_data="page_2"))
-            buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
-            buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
-        # Третя сторінка
-        elif current_page == 2 and total_pages > 5:
-            buttons.append(InlineKeyboardButton(text="1", callback_data="page_0"))
-            buttons.append(InlineKeyboardButton(text="2", callback_data="page_1"))
-            buttons.append(InlineKeyboardButton(text="-3-", callback_data="page_2"))
-            buttons.append(InlineKeyboardButton(text="4", callback_data="page_3"))
-            buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
-        # Третя з кінця сторінка
-        elif current_page == total_pages - 3 and total_pages > 5:
-            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
-            buttons.append(InlineKeyboardButton(text=f"-{total_pages - 2}-", callback_data=f"page_{total_pages - 3}"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 1}", callback_data=f"page_{total_pages - 2}"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages}", callback_data=f"page_{total_pages - 1}"))
-        # Передостання сторінка
-        elif current_page == total_pages - 2 and total_pages > 5:
-            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 2}", callback_data=f"page_{total_pages - 3}"))
-            buttons.append(InlineKeyboardButton(text=f"-{total_pages - 1}-", callback_data=f"page_{total_pages - 2}"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages}", callback_data=f"page_{total_pages - 1}"))
-        # Остання сторінка
-        elif current_page == total_pages - 1 and total_pages > 5:
-            buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 3}", callback_data=f"page_{total_pages - 4}"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 2}", callback_data=f"page_{total_pages - 3}"))
-            buttons.append(InlineKeyboardButton(text=f"{total_pages - 1}", callback_data=f"page_{total_pages - 2}"))
-            buttons.append(InlineKeyboardButton(text=f"-{total_pages}-", callback_data=f"page_{total_pages - 1}"))
+    До 5 кнопок сторінок (поточну в центрі при багатьох сторінках),
+    плюс кнопка «Повернутися до пошуку».
+    """
+
+    remove_keyboard = ReplyKeyboardRemove()
+
+    search_method = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=SEARCH_BY_TITLE)],
+            [KeyboardButton(text=SEARCH_BY_LYRICS)],
+        ],
+        resize_keyboard=True,
+    )
+
+    MAX_PAGINATION_BUTTONS = 5
+
+    @staticmethod
+    def create_pagination_keyboard(current_page: int, total_pages: int) -> InlineKeyboardMarkup:
+        """
+        Створює inline-клавіатуру пагінації з до 5 кнопок сторінок.
+
+        При total_pages <= 5 показує всі номери; інакше — вікно навколо current_page
+        з кнопками «<<1» та «>>N» по краях.
+
+        Args:
+            current_page: Поточна сторінка (0-based).
+            total_pages: Загальна кількість сторінок.
+
+        Returns:
+            InlineKeyboardMarkup з кнопками сторінок та «Повернутися до пошуку».
+        """
+        buttons: list[InlineKeyboardButton] = []
+
+        if total_pages <= Keyboards.MAX_PAGINATION_BUTTONS:
+            for i in range(total_pages):
+                label = f'-{i + 1}-' if i == current_page else str(i + 1)
+                buttons.append(InlineKeyboardButton(text=label, callback_data=f'page_{i}'))
         else:
-            # Перша сторінка
-            if current_page > 1:
-                buttons.append(InlineKeyboardButton(text="<<1", callback_data="page_0"))
-            # Попередня сторінка
-            if current_page > 0:
-                buttons.append(InlineKeyboardButton(text=f"{current_page}", callback_data=f"page_{current_page - 1}"))
-            # Теперішня сторінка
-            buttons.append(InlineKeyboardButton(text=f"-{current_page + 1}-", callback_data=f"page_{current_page}"))
-            # Наступна сторінка
-            if current_page < total_pages - 1:
-                buttons.append(InlineKeyboardButton(text=f"{current_page + 2}", callback_data=f"page_{current_page + 1}"))
-            # Остання сторінка
-            if current_page < total_pages - 2:
-                buttons.append(InlineKeyboardButton(text=f">>{total_pages}", callback_data=f"page_{total_pages - 1}"))
+            half = Keyboards.MAX_PAGINATION_BUTTONS // 2
+            start = max(0, min(current_page - half, total_pages - Keyboards.MAX_PAGINATION_BUTTONS))
+            end = min(start + Keyboards.MAX_PAGINATION_BUTTONS, total_pages)
 
-    # Додати кнопку повернення до етапу вибору методу пошуку
-    return_button = InlineKeyboardButton(text="🔍 Повернутися до пошуку", callback_data="return_to_search_method")
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[buttons, [return_button]])
-    return keyboard
+            if start > 0:
+                buttons.append(InlineKeyboardButton(text='<<1', callback_data='page_0'))
+
+            for i in range(start, end):
+                label = f'-{i + 1}-' if i == current_page else str(i + 1)
+                buttons.append(InlineKeyboardButton(text=label, callback_data=f'page_{i}'))
+
+            if end < total_pages:
+                buttons.append(
+                    InlineKeyboardButton(
+                        text=f'>>{total_pages}',
+                        callback_data=f'page_{total_pages - 1}',
+                    ),
+                )
+
+        return_button = InlineKeyboardButton(
+            text='🔍 Повернутися до пошуку',
+            callback_data='return_to_search_method',
+        )
+        return InlineKeyboardMarkup(inline_keyboard=[buttons, [return_button]])
+
+
+remove_keyboard = Keyboards.remove_keyboard
+search_method = Keyboards.search_method
+create_pagination_keyboard = Keyboards.create_pagination_keyboard

@@ -51,10 +51,7 @@ def search_songs(query_str):
         direct_hits = searcher.search(direct_query)
         direct_hits.fragmenter.charlimit = None  # Відключаємо обмеження на кількість символів
         direct_hits.fragmenter = highlight.ContextFragmenter(maxchars=5)
-        print(f"-----------------------------{direct_hits}")
         direct_hits_dict = get_hits(direct_hits)
-        print(f"-----------------------------{direct_hits_dict}")
-        # print(direct_hits_dict)
 
         # Пошук за окремими словами
         indirect_query = parser.parse(query_str)  # - пошук за кожним окремим словом
@@ -97,10 +94,7 @@ def get_hits(hits):
         }
     return results
 
-# Відкриваємо існуючий індекс
-
-
-# Пошук за запитом
-query = "ми будемо співати"
-found_songs = search_songs(query)
-print(json.dumps(found_songs, ensure_ascii=False, indent=4))
+if __name__ == '__main__':
+    query = 'ми будемо співати'
+    found_songs = search_songs(query)
+    print(json.dumps(found_songs, ensure_ascii=False, indent=4))
