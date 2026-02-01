@@ -1,5 +1,3 @@
-"""Сервіс пошуку пісень та отримання текстів через Planning Center API."""
-
 from __future__ import annotations
 
 import base64
@@ -10,6 +8,7 @@ import httpx
 
 from logs.log_config import logger
 from planning_center.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
+from planning_center.rate_limiter import PcoRateLimiter
 
 if TYPE_CHECKING:
     from config import Config
@@ -24,6 +23,7 @@ class SongSearchService:
 
     BASE_URL = 'https://api.planningcenteronline.com/services/v2'
     SONGS_URL = f'{BASE_URL}/songs?per_page=100&order=title&where'
+    ALL_SONGS_URL = f'{BASE_URL}/songs?per_page=100&order=title'
 
     def __init__(self, config: Config | None = None) -> None:
         """
@@ -37,6 +37,7 @@ class SongSearchService:
             self._client_id = os.getenv('CLIENT_ID', '')
             self._secret = os.getenv('SECRET', '')
         self._headers = self._get_headers()
+        self._rate_limiter = PcoRateLimiter(max_requests=90, window_seconds=20.0)
 
     def _get_headers(self) -> dict[str, str]:
         """Повертає заголовки Basic Auth для API."""
@@ -45,26 +46,14 @@ class SongSearchService:
         return {'Authorization': f'Basic {credentials_b64}'}
 
     async def _get_response_json(self, request_url: str) -> dict | None:
-        """Виконує GET-запит і повертає JSON або None."""
-        logger.debug('[PCO] GET %s', request_url[:120] + '...' if len(request_url) > 120 else request_url)
+        """Виконує GET-запит і повертає JSON або None. Дотримується rate limit (90/20 с)."""
+        await self._rate_limiter.acquire()
         async with httpx.AsyncClient() as client:
             response = await client.get(request_url, headers=self._headers)
-            logger.info(
-                '[PCO] Відповідь API: status_code=%s, url_len=%s',
-                response.status_code,
-                len(request_url),
-            )
             if response.status_code == 200:
-                data = response.json()
-                meta = data.get('meta', {})
-                logger.debug(
-                    '[PCO] JSON meta: total_count=%s, next=%s',
-                    meta.get('total_count'),
-                    'next' in data.get('links', {}),
-                )
-                return data
+                return response.json()
             logger.warning(
-                '[PCO] Помилка API: status_code=%s, response=%s',
+                '[PCO] API error: status_code=%s, response=%s',
                 response.status_code,
                 response.text[:500] if response.text else '',
             )
@@ -99,33 +88,22 @@ class SongSearchService:
         Returns:
             Словник пісень з пагінації API.
         """
-        logger.info(
-            '[PCO] get_songs_dict: search_method=%s, search_text=%s',
-            search_data.get('search_method'),
-            search_data.get('search_text'),
-        )
         search_url = self._choose_search_url(search_data)
         if not search_url:
-            logger.warning('[PCO] Не підтримуваний search_method, порожній результат')
+            logger.warning('[PCO] Unsupported search_method, empty result')
             return {}
         songs_data = await self._get_response_json(search_url)
         if not songs_data:
-            logger.warning('[PCO] Перший запит повернув None або помилку')
+            logger.warning('[PCO] First request returned None or error')
             return {}
         songs_dict: dict = {}
         songs_dict = self._fetch_songs_dict(songs_data, songs_dict)
-        page = 1
-        logger.debug('[PCO] Сторінка %s: додано пісень=%s', page, len(songs_data.get('data', [])))
         while 'next' in songs_data.get('links', {}):
             next_url = songs_data['links']['next']
-            page += 1
             songs_data = await self._get_response_json(next_url)
             if not songs_data:
-                logger.warning('[PCO] Пагінація: сторінка %s повернула None', page)
                 break
             songs_dict = self._fetch_songs_dict(songs_data, songs_dict)
-            logger.debug('[PCO] Сторінка %s: додано пісень=%s, всього=%s', page, len(songs_data.get('data', [])), len(songs_dict))
-        logger.info('[PCO] get_songs_dict результат: total_songs=%s', len(songs_dict))
         return songs_dict
 
     async def get_song_text(self, song_id: str) -> str | None:
@@ -139,15 +117,58 @@ class SongSearchService:
             Лірика або None при помилці.
         """
         url = f'{self.BASE_URL}/songs/{song_id}/arrangements'
-        logger.debug('[PCO] get_song_text: song_id=%s', song_id)
         song_data = await self._get_response_json(url)
         if not song_data or not song_data.get('data'):
-            logger.warning(
-                '[PCO] get_song_text: немає даних для song_id=%s, data_empty=%s',
-                song_id,
-                not (song_data and song_data.get('data')),
-            )
             return None
-        lyrics = song_data['data'][0]['attributes'].get('lyrics', 'Текст пісні відсутній.')
-        logger.debug('[PCO] get_song_text: song_id=%s, lyrics_len=%s', song_id, len(lyrics))
-        return lyrics
+        lyrics_raw = song_data['data'][0]['attributes'].get('lyrics')
+        return lyrics_raw if lyrics_raw is not None else 'Текст пісні відсутній.'
+
+    async def fetch_all_songs_with_lyrics(self) -> list[dict]:
+        """
+        Повертає всі пісні з PCO з текстами (для синхронізації в локальну БД).
+
+        Пагінує список пісень, для кожної отримує lyrics з arrangements.
+        Використовується тільки в sync-модулі, не в обробниках запитів.
+
+        Returns:
+            Список словників {id, title, lyrics, updated_at?, created_at?}.
+        """
+        all_songs: list[dict] = []
+        url: str | None = self.ALL_SONGS_URL
+        total_planned: int | None = None
+        while url:
+            data = await self._get_response_json(url)
+            if not data or not data.get('data'):
+                break
+            if total_planned is None:
+                total_planned = data.get('meta', {}).get('total_count')
+            for song in data['data']:
+                attrs = song.get('attributes', {})
+                title = attrs.get('title', '')
+                song_url = song.get('links', {}).get('self', '')
+                song_id = song_url.split('/')[-1] if song_url else ''
+                if not song_id:
+                    continue
+                lyrics = await self.get_song_text(song_id)
+                status = 'success' if lyrics else 'error'
+                current = len(all_songs) + 1
+                progress = f'{current}/{total_planned}' if total_planned is not None else str(current)
+                title_part = title if title else '(no title)'
+                logger.info(
+                    'Parsing song %s (%s) completed. Status: %s. Progress: %s',
+                    song_id,
+                    title_part,
+                    status,
+                    progress,
+                )
+                all_songs.append(
+                    {
+                        'id': song_id,
+                        'title': title,
+                        'lyrics': lyrics or '',
+                        'updated_at': attrs.get('updated_at'),
+                        'created_at': attrs.get('created_at'),
+                    },
+                )
+            url = data.get('links', {}).get('next')
+        return all_songs

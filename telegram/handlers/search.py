@@ -1,20 +1,27 @@
 """Обробники пошуку та відображення списку пісень."""
 
+from typing import TYPE_CHECKING
+
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from logs.log_config import logger
-from planning_center.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
-from planning_center.song_search import SongSearchService
+from lyrics.fuzzy_search import FuzzySearchService
 from telegram import keyboards as kb
 from telegram.formatters import format_songs_list
 from telegram.fsm import UserState
 from telegram.pagination import PAGE_SIZE, chunk_songs, get_page_range
 
+if TYPE_CHECKING:
+    from storage.repository import SongRepository
 
-def get_search_router(song_search_service: SongSearchService) -> Router:
-    """Повертає роутер з обробниками пошуку та відображення списку пісень."""
+
+def get_search_router(
+    fuzzy_search_service: FuzzySearchService,
+    repository: 'SongRepository',
+) -> Router:
+    """Повертає роутер з обробниками пошуку (fuzzy по локальній БД) та відображення списку пісень."""
     router = Router()
 
     async def display_songs_list(message: Message, state: FSMContext) -> None:
@@ -63,7 +70,7 @@ def get_search_router(song_search_service: SongSearchService) -> Router:
         F.text != kb.RETURN_TO_SEARCH_TEXT,
     )
     async def process_search_query(message: Message, state: FSMContext) -> None:
-        """Шукає по назві та по тексту, обʼєднує результати без дублікатів."""
+        """Шукає по фрагменту тексту (fuzzy) по локальній БД, показує список пісень."""
         search_text = message.text
         user_id = message.from_user.id if message.from_user else None
         logger.info(
@@ -72,22 +79,19 @@ def get_search_router(song_search_service: SongSearchService) -> Router:
             search_text,
         )
         await state.update_data(search_text=search_text)
-        by_title = await song_search_service.get_songs_dict(
-            {'search_method': SEARCH_BY_TITLE, 'search_text': search_text},
+        songs_data = repository.get_all()
+        results = fuzzy_search_service.search(
+            search_text,
+            songs_data,
+            max_results=None,
         )
-        by_lyrics = await song_search_service.get_songs_dict(
-            {'search_method': SEARCH_BY_LYRICS, 'search_text': search_text},
-        )
-        by_id: dict[str, dict] = {}
-        for d in (by_title, by_lyrics):
-            for song in d.values():
-                by_id[song['id']] = song
-        sorted_songs = sorted(by_id.values(), key=lambda s: s['title'].lower())
-        songs_dict = {i: song for i, song in enumerate(sorted_songs, start=1)}
+        sorted_results = sorted(results, key=lambda r: r['title'].lower())
+        songs_dict = {
+            i: {'title': r['title'], 'id': r['song_id']}
+            for i, r in enumerate(sorted_results, start=1)
+        }
         logger.info(
-            '[SEARCH] PCO: по назві=%s, по тексту=%s, після обʼєднання=%s',
-            len(by_title),
-            len(by_lyrics),
+            '[SEARCH] Fuzzy по локальній БД: знайдено=%s',
             len(songs_dict),
         )
         await state.update_data(songs_dict=songs_dict)

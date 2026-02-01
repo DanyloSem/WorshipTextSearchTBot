@@ -24,7 +24,7 @@ def get_start_router() -> Router:
             first_name,
         )
         await message.answer(
-            f'Вітаю, {first_name}!\nДля пошуку, введіть фрагмент тексту або назву пісні:',
+            f'👋 Слава Ісусу Христу, {first_name}!\nДля пошуку, введи фрагмент тексту або назву пісні:',
             reply_markup=kb.remove_keyboard,
         )
         await state.set_state(UserState.search_query)

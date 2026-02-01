@@ -24,6 +24,7 @@ indexdir/
 .cursor/
 
 # Project data (те, що ти не хочеш бачити в гіті)
+data/*.db
 logs/
 *.log
 

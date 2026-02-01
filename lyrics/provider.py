@@ -1,54 +1,40 @@
-"""Провайдер даних пісень з JSON-файлу для inline-пошуку."""
+"""Провайдер даних пісень для inline-пошуку (репозиторій)."""
 
-import json
-from pathlib import Path
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from logs.log_config import logger
+
+if TYPE_CHECKING:
+    from storage.repository import SongRepository
 
 
 class SongsDataProvider:
     """
-    Завантажує та надає дані пісень з локального JSON-файлу.
+    Надає дані пісень з репозиторію у форматі {song_id: {title: lyrics}}.
 
-    Використовується InlineSearch для пошуку по назві та тексту без API.
+    Використовується InlineSearch та інлайн-хендлером для доступу до пісень.
     """
 
-    def __init__(self, songs_data_path: str) -> None:
+    def __init__(self, repository: 'SongRepository') -> None:
         """
         Args:
-            songs_data_path: Шлях до JSON-файлу з даними пісень.
+            repository: Репозиторій пісень (наприклад, SQLite).
         """
-        self._path = Path(songs_data_path)
-        self._songs_data: dict | None = None
-        logger.debug('[LYRICS] SongsDataProvider ініціалізовано: path=%s', self._path)
+        self._repository = repository
+        logger.debug('[LYRICS] SongsDataProvider ініціалізовано з репозиторієм')
 
     def get_songs_data(self) -> dict:
         """
-        Повертає словник даних пісень (завантажує з файлу при першому виклику).
-
-        Виключає службові ключі (наприклад last_updated) — лише записи з числовим id.
+        Повертає словник даних пісень з репозиторію.
 
         Returns:
             Словник {song_id: {title: lyrics}}.
         """
-        if self._songs_data is None:
-            logger.info(
-                '[LYRICS] Завантаження локальної бібліотеки пісень з файлу: path=%s',
-                self._path,
-            )
-            with open(self._path, 'r', encoding='utf-8') as file:
-                raw = json.load(file)
-            self._songs_data = {k: v for k, v in raw.items() if k.isdigit()}
-            logger.info(
-                '[LYRICS] Локальна бібліотека завантажена вперше: пісень=%s',
-                len(self._songs_data),
-            )
-        else:
-            logger.debug(
-                '[LYRICS] Використання кешу бібліотеки: пісень=%s',
-                len(self._songs_data),
-            )
-        return self._songs_data
+        data = self._repository.get_all()
+        logger.debug('[LYRICS] get_songs_data: пісень=%s', len(data))
+        return data
 
     @property
     def songs_data(self) -> dict:

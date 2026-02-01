@@ -1,16 +1,29 @@
 """Точка входу: запуск бота в режимі polling."""
 
 import asyncio
+import os
+
+from dotenv import load_dotenv
+
+_run_dir = os.path.dirname(os.path.abspath(__file__))
+_env_path = os.path.join(_run_dir, '.env')
+if os.path.isfile(_env_path):
+    load_dotenv(_env_path)
+else:
+    load_dotenv()
 
 # Логування має налаштовуватись до імпорту aiogram, інакше basicConfig() нічого не зробить
-from logs.log_config import logger
+from logs.log_config import apply_log_level, logger
 
 from aiogram import Bot, Dispatcher
+from aiogram.exceptions import TelegramUnauthorizedError
 
 from config import load_config
-from lyrics.inline_search import InlineSearch
-from lyrics.provider import SongsDataProvider
+from lyrics.fuzzy_search import FuzzySearchService
 from planning_center.song_search import SongSearchService
+from storage.sqlite_repository import SQLiteSongRepository
+from sync import run_once as sync_run_once
+from sync.scheduler import start_scheduler
 from telegram.handlers import create_router
 
 
@@ -18,28 +31,38 @@ async def main() -> None:
     """Запускає бота в режимі polling з інжекцією залежностей."""
     logger.info('Завантаження конфігурації')
     config = load_config()
+    apply_log_level(config.log_level)
     logger.info(
-        'Конфіг завантажено: songs_data_path=%s, webhook_url=%s',
+        'Конфіг завантажено: songs_data_path=%s, data_path=%s, webhook_url=%s, log_level=%s',
         config.songs_data_path,
+        config.data_path,
         config.webhook_url,
+        config.log_level,
     )
-    logger.info('Створення SongSearchService (PCO API)')
-    song_search_service = SongSearchService(config)
-    logger.info('Створення SongsDataProvider: path=%s', config.songs_data_path)
-    provider = SongsDataProvider(config.songs_data_path)
-    logger.info('Створення InlineSearch')
-    inline_search = InlineSearch(provider)
-    logger.info('Збирання роутера з обробниками')
+    repository = SQLiteSongRepository(config.data_path)
+    pco_client = SongSearchService(config)
+    logger.info('Синхронізація з PCO при старті')
+    await sync_run_once(pco_client, repository)
+    start_scheduler(pco_client, repository)
+    fuzzy_search_service = FuzzySearchService()
+    logger.info('Збирання роутера з обробниками (локальна БД + fuzzy-пошук)')
     router = create_router(
-        song_search_service=song_search_service,
-        inline_search=inline_search,
+        repository=repository,
+        fuzzy_search_service=fuzzy_search_service,
     )
     bot = Bot(token=config.telegram_token)
     dp = Dispatcher()
     dp.include_router(router)
     logger.info('Webhook скинуто, запуск polling')
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)
+        await dp.start_polling(bot)
+    except TelegramUnauthorizedError:
+        logger.error(
+            '[BOT] TELEGRAM_TOKEN невалідний або відкликаний. '
+            'Перевірте .env та отримайте новий токен у @BotFather.',
+        )
+        raise
 
 
 if __name__ == '__main__':

@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 from aiogram import Router
 
 from logs.log_config import logger
+from lyrics.fuzzy_search import FuzzySearchService
 from lyrics.inline_search import InlineSearch
 from lyrics.provider import SongsDataProvider
-from planning_center.song_search import SongSearchService
 from telegram.handlers.inline import get_inline_router
 from telegram.handlers.pagination import get_pagination_router
 from telegram.handlers.search import get_search_router
@@ -17,45 +17,39 @@ from telegram.handlers.song import get_song_router
 from telegram.handlers.start import get_start_router
 
 if TYPE_CHECKING:
-    from config import Config
+    from storage.repository import SongRepository
 
 
 def create_router(
-    song_search_service: SongSearchService | None = None,
+    repository: 'SongRepository',
+    fuzzy_search_service: FuzzySearchService | None = None,
     inline_search: InlineSearch | None = None,
-    songs_data_path: str = 'songs_data.json',
-    config: 'Config | None' = None,
 ) -> Router:
     """
     Створює головний роутер з підключеними обробниками та залежностями.
 
+    Усі пошуки працюють з локальною базою (репозиторій); PCO не викликається в обробниках.
+
     Args:
-        song_search_service: Сервіс пошуку пісень по API. Якщо None — створюється з config або env.
-        inline_search: Сервіс інлайн-пошуку. Якщо None — створюється з провайдера.
-        songs_data_path: Шлях до JSON з даними пісень для inline (якщо inline_search None).
-        config: Конфігурація для створення сервісів при відсутності song_search_service.
+        repository: Репозиторій пісень (SQLite).
+        fuzzy_search_service: Сервіс fuzzy-пошуку; якщо None — створюється внутрішньо.
+        inline_search: Сервіс інлайн-пошуку; якщо None — створюється з провайдера та fuzzy.
 
     Returns:
         Router з усіма обробниками.
     """
-    if config is not None:
-        path = config.songs_data_path
-    else:
-        path = songs_data_path
-    sss = song_search_service or SongSearchService(config)
-    logger.debug('PCO SongSearchService: %s', 'інжектовано' if song_search_service else 'створено з config')
-    if inline_search is None:
-        provider = SongsDataProvider(path)
-        inlinesearch = InlineSearch(provider)
-        logger.debug('InlineSearch створено з провайдером, path=%s', path)
-    else:
-        inlinesearch = inline_search
-        logger.debug('InlineSearch інжектовано')
+    fuzzy = fuzzy_search_service or FuzzySearchService()
+    provider = SongsDataProvider(repository)
+    inlinesearch = inline_search or InlineSearch(provider, fuzzy)
+    logger.debug(
+        'Роутер: репозиторій, FuzzySearch, InlineSearch=%s',
+        'інжектовано' if inline_search else 'створено',
+    )
 
     router = Router()
     router.include_router(get_start_router())
-    router.include_router(get_song_router(sss))  # /id_* перед search, щоб працював на будь-якому етапі
-    router.include_router(get_search_router(sss))
+    router.include_router(get_song_router(repository))
+    router.include_router(get_search_router(fuzzy, repository))
     router.include_router(get_inline_router(inlinesearch))
     router.include_router(get_pagination_router())
 

@@ -1,17 +1,21 @@
 """Обробник команди /id_*."""
 
+from typing import TYPE_CHECKING
+
 from aiogram import Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from logs.log_config import logger
-from planning_center.song_search import SongSearchService
 from telegram import keyboards as kb
 from telegram.fsm import UserState
 
+if TYPE_CHECKING:
+    from storage.repository import SongRepository
 
-def get_song_router(song_search_service: SongSearchService) -> Router:
-    """Повертає роутер з обробником команди /id_*."""
+
+def get_song_router(repository: 'SongRepository') -> Router:
+    """Повертає роутер з обробником команди /id_* (точний пошук по id з локальної БД)."""
     router = Router()
 
     @router.message(F.text.startswith('/id_'))
@@ -24,17 +28,17 @@ def get_song_router(song_search_service: SongSearchService) -> Router:
         )
         song_id = message.text[4:]
         if song_id.isdigit():
-            logger.debug('[SONG] Запит тексту з PCO: song_id=%s', song_id)
-            lyrics = await song_search_service.get_song_text(song_id)
-            if lyrics:
+            logger.debug('[SONG] Запит тексту з локальної БД: song_id=%s', song_id)
+            record = repository.get_by_id(song_id)
+            if record and record.get('lyrics'):
                 logger.info(
                     '[SONG] Текст отримано: song_id=%s, length=%s',
                     song_id,
-                    len(lyrics),
+                    len(record['lyrics']),
                 )
-                await message.answer(lyrics, reply_markup=kb.return_to_search_keyboard)
+                await message.answer(record['lyrics'], reply_markup=kb.return_to_search_keyboard)
             else:
-                logger.warning('[SONG] Текст пісні не знайдено в PCO: song_id=%s', song_id)
+                logger.warning('[SONG] Текст пісні не знайдено в локальній БД: song_id=%s', song_id)
                 await message.answer('Текст пісні не знайдено.', reply_markup=kb.return_to_search_keyboard)
             await state.set_state(UserState.search_query)
             logger.debug('[SONG] Стан встановлено: UserState.search_query')

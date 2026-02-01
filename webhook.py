@@ -1,10 +1,13 @@
 """Фабрика aiohttp-додатку для webhook-режиму бота."""
 
 import os
+from typing import Any
 
 from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update
+
+from logs.log_config import logger
 
 
 class WebhookApp:
@@ -39,13 +42,41 @@ class WebhookApp:
         await bot.delete_webhook()
 
     @staticmethod
-    def create_app(bot: Bot, dp: Dispatcher) -> web.Application:
+    async def handle_pco_webhook(request: web.Request) -> web.Response:
+        """
+        Обробляє POST /pco-webhook: заглушка для майбутньої інтеграції з PCO webhooks.
+
+        Логує виклик і опційно запускає синхронізацію, якщо в app передані pco_client та repository.
+        """
+        logger.info('[WEBHOOK] PCO webhook received')
+        app = request.app
+        pco_client = app.get('pco_client')
+        repository = app.get('repository')
+        if pco_client is not None and repository is not None:
+            from sync.song_sync import run_once
+
+            try:
+                await run_once(pco_client, repository)
+            except Exception:
+                logger.exception('[WEBHOOK] Помилка синхронізації з PCO webhook')
+                return web.Response(status=500)
+        return web.Response()
+
+    @staticmethod
+    def create_app(
+        bot: Bot,
+        dp: Dispatcher,
+        pco_client: Any = None,
+        repository: Any = None,
+    ) -> web.Application:
         """
         Створює aiohttp Application для webhook.
 
         Args:
             bot: Інстанс Bot.
             dp: Інстанс Dispatcher.
+            pco_client: Опційно — клієнт PCO для виклику sync з /pco-webhook.
+            repository: Опційно — репозиторій пісень для sync.
 
         Returns:
             Налаштований aiohttp.Application.
@@ -53,21 +84,31 @@ class WebhookApp:
         app = web.Application()
         app['bot'] = bot
         app['dp'] = dp
+        app['pco_client'] = pco_client
+        app['repository'] = repository
         app.router.add_post('/webhook', WebhookApp.handle)
+        app.router.add_post('/pco-webhook', WebhookApp.handle_pco_webhook)
         app.on_startup.append(WebhookApp.on_startup)
         app.on_shutdown.append(WebhookApp.on_shutdown)
         return app
 
 
-def create_app(bot: Bot, dp: Dispatcher) -> web.Application:
+def create_app(
+    bot: Bot,
+    dp: Dispatcher,
+    pco_client: Any = None,
+    repository: Any = None,
+) -> web.Application:
     """
     Створює aiohttp Application для прийому webhook від Telegram.
 
     Args:
         bot: Інстанс Bot.
         dp: Інстанс Dispatcher.
+        pco_client: Опційно — клієнт PCO для /pco-webhook.
+        repository: Опційно — репозиторій для sync з /pco-webhook.
 
     Returns:
         Налаштований aiohttp.Application.
     """
-    return WebhookApp.create_app(bot, dp)
+    return WebhookApp.create_app(bot, dp, pco_client, repository)

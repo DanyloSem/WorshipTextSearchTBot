@@ -16,8 +16,10 @@ class Config:
     client_id: str
     secret: str
     songs_data_path: str
+    data_path: str
     webhook_url: str | None = None
     port: int = 8080
+    log_level: str = 'INFO'
 
     @classmethod
     def from_env(cls) -> 'Config':
@@ -34,8 +36,10 @@ class Config:
         client_id = os.getenv('PCO_CLIENT_ID')
         secret = os.getenv('PCO_SECRET')
         songs_data_path = os.getenv('SONGS_DATA_PATH', 'songs_data.json')
+        data_path = os.getenv('DATA_PATH', 'data/songs.db')
         webhook_url = os.getenv('WEBHOOK_URL')
         port_str = os.getenv('PORT', '8080')
+        log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
 
         missing = []
         if not telegram_token:
@@ -57,8 +61,10 @@ class Config:
             client_id=client_id,
             secret=secret,
             songs_data_path=songs_data_path,
+            data_path=data_path,
             webhook_url=webhook_url or None,
             port=port,
+            log_level=log_level,
         )
 
 
