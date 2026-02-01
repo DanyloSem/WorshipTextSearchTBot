@@ -32,12 +32,12 @@ def get_song_router(song_search_service: SongSearchService) -> Router:
                     song_id,
                     len(lyrics),
                 )
-                await message.answer(lyrics, reply_markup=kb.search_method)
+                await message.answer(lyrics, reply_markup=kb.return_to_search_keyboard)
             else:
                 logger.warning('[SONG] Текст пісні не знайдено в PCO: song_id=%s', song_id)
-                await message.answer('Текст пісні не знайдено.', reply_markup=kb.search_method)
-            await state.set_state(UserState.search_method)
-            logger.debug('[SONG] Стан встановлено: UserState.search_method')
+                await message.answer('Текст пісні не знайдено.', reply_markup=kb.return_to_search_keyboard)
+            await state.set_state(UserState.search_query)
+            logger.debug('[SONG] Стан встановлено: UserState.search_query')
         else:
             logger.warning('[SONG] Невалідний song_id (не цифри): raw=%s', song_id)
 

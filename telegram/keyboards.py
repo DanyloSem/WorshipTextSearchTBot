@@ -8,24 +8,21 @@ from aiogram.types import (
     ReplyKeyboardRemove,
 )
 
-from telegram.constants import SEARCH_BY_LYRICS, SEARCH_BY_TITLE
+RETURN_TO_SEARCH_TEXT = '🔍 Повернутися до пошуку'
 
 
 class Keyboards:
     """
     Константи розміток та фабрика клавіатури пагінації.
 
-    До 5 кнопок сторінок (поточну в центрі при багатьох сторінках),
-    плюс кнопка «Повернутися до пошуку».
+    До 5 кнопок сторінок (поточну в центрі при багатьох сторінках).
+    Кнопка «Повернутися до пошуку» — reply, під полем введення.
     """
 
     remove_keyboard = ReplyKeyboardRemove()
 
-    search_method = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=SEARCH_BY_TITLE)],
-            [KeyboardButton(text=SEARCH_BY_LYRICS)],
-        ],
+    return_to_search_keyboard = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=RETURN_TO_SEARCH_TEXT)]],
         resize_keyboard=True,
     )
 
@@ -44,7 +41,7 @@ class Keyboards:
             total_pages: Загальна кількість сторінок.
 
         Returns:
-            InlineKeyboardMarkup з кнопками сторінок та «Повернутися до пошуку».
+            InlineKeyboardMarkup лише з кнопками сторінок.
         """
         buttons: list[InlineKeyboardButton] = []
 
@@ -72,13 +69,9 @@ class Keyboards:
                     ),
                 )
 
-        return_button = InlineKeyboardButton(
-            text='🔍 Повернутися до пошуку',
-            callback_data='return_to_search_method',
-        )
-        return InlineKeyboardMarkup(inline_keyboard=[buttons, [return_button]])
+        return InlineKeyboardMarkup(inline_keyboard=[buttons])
 
 
 remove_keyboard = Keyboards.remove_keyboard
-search_method = Keyboards.search_method
+return_to_search_keyboard = Keyboards.return_to_search_keyboard
 create_pagination_keyboard = Keyboards.create_pagination_keyboard

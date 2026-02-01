@@ -60,9 +60,9 @@ def get_pagination_router() -> Router:
             '[PAGINATION] Натиснуто "Повернутися до пошуку": user_id=%s',
             user_id,
         )
-        await callback_query.message.answer('Оберіть метод пошуку:', reply_markup=kb.search_method)
-        await state.set_state(UserState.search_method)
-        logger.debug('[PAGINATION] Стан встановлено: UserState.search_method')
+        await callback_query.message.answer('Введіть текст для пошуку:', reply_markup=kb.remove_keyboard)
+        await state.set_state(UserState.search_query)
+        logger.debug('[PAGINATION] Стан встановлено: UserState.search_query')
         await callback_query.answer()
 
     return router

@@ -24,10 +24,10 @@ def get_start_router() -> Router:
             first_name,
         )
         await message.answer(
-            f'Вітаю {first_name}!\nОберіть метод пошуку:',
-            reply_markup=kb.search_method,
+            f'Вітаю, {first_name}!\nВведіть текст для пошуку (назва або фрагмент тексту пісні):',
+            reply_markup=kb.remove_keyboard,
         )
-        await state.set_state(UserState.search_method)
-        logger.debug('[START] Стан встановлено: UserState.search_method')
+        await state.set_state(UserState.search_query)
+        logger.debug('[START] Стан встановлено: UserState.search_query')
 
     return router

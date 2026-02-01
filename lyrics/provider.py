@@ -26,6 +26,8 @@ class SongsDataProvider:
         """
         Повертає словник даних пісень (завантажує з файлу при першому виклику).
 
+        Виключає службові ключі (наприклад last_updated) — лише записи з числовим id.
+
         Returns:
             Словник {song_id: {title: lyrics}}.
         """
@@ -35,7 +37,8 @@ class SongsDataProvider:
                 self._path,
             )
             with open(self._path, 'r', encoding='utf-8') as file:
-                self._songs_data = json.load(file)
+                raw = json.load(file)
+            self._songs_data = {k: v for k, v in raw.items() if k.isdigit()}
             logger.info(
                 '[LYRICS] Локальна бібліотека завантажена вперше: пісень=%s',
                 len(self._songs_data),

@@ -54,8 +54,8 @@ def create_router(
 
     router = Router()
     router.include_router(get_start_router())
+    router.include_router(get_song_router(sss))  # /id_* перед search, щоб працював на будь-якому етапі
     router.include_router(get_search_router(sss))
-    router.include_router(get_song_router(sss))
     router.include_router(get_inline_router(inlinesearch))
     router.include_router(get_pagination_router())
 
