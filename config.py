@@ -19,7 +19,7 @@ class Config:
     data_path: str
     webhook_url: str | None = None
     port: int = 8080
-    log_level: str = 'INFO'
+    log_level: str = 'INFO' # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
     @classmethod
     def from_env(cls) -> 'Config':

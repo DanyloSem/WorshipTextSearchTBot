@@ -14,7 +14,7 @@ from sync.song_sync import run_once
 if TYPE_CHECKING:
     from storage.repository import SongRepository
 
-_SCHEDULED_HOURS = (3, 6, 9, 12)
+_SCHEDULED_HOURS = (0, 3, 6, 9, 12, 15, 18, 21)
 
 
 def _seconds_until_next_run() -> float:

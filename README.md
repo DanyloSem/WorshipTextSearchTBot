@@ -68,24 +68,140 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 
 1. Створіть файл `.env` у корені проєкту (як у пункті 3 вище).
 
-2. Створіть папку `data` (для збереження SQLite-бази пісень):
-
-   ```bash
-   mkdir -p data
-   ```
-
-   При старті контейнера бот один раз синхронізує пісні з PCO у `data/songs.db`; далі синхронізація запускається за розкладом (03:00, 06:00, 09:00, 12:00 UTC).
-
-3. Зберіть образ і запустіть контейнер:
+2. Зберіть образ і запустіть контейнер:
 
    ```bash
    docker compose build
    docker compose up -d
    ```
 
-   Логи: `docker compose logs -f bot`. Зупинка: `docker compose down`.
+   Каталог `data/` для SQLite створюється автоматично при старті бота. Логи: `docker compose logs -f bot`. Зупинка: `docker compose down`.
 
-4. Для webhook-режиму розкоментуйте в `docker-compose.yml` секцію `ports` (8080) та додайте в `.env` змінну `WEBHOOK_URL`. Ендпоінт `POST /pco-webhook` зарезервовано для майбутньої інтеграції з PCO webhooks.
+3. Для webhook-режиму розкоментуйте в `docker-compose.yml` секцію `ports` (8080) та додайте в `.env` змінну `WEBHOOK_URL`. Ендпоінт `POST /pco-webhook` зарезервовано для майбутньої інтеграції з PCO webhooks.
+
+---
+
+## Деплой на сервер
+
+Нижче — варіанти запуску бота на VPS/сервері (Linux). Рекомендовано використовувати Docker.
+
+### Вимоги на сервері
+
+- ОС: Linux (Ubuntu 22.04 LTS або аналог)
+- Python 3.12+ (якщо без Docker) або Docker і Docker Compose
+- Доступ по SSH
+
+### Варіант 1: Деплой через Docker (рекомендовано)
+
+1. Підключіться по SSH та встановіть Docker і Docker Compose (якщо ще не встановлені):
+
+   ```bash
+   # Ubuntu/Debian
+   sudo apt update && sudo apt install -y docker.io docker-compose-plugin
+   sudo usermod -aG docker $USER
+   # Вийдіть і зайдіть знову, щоб група docker застосувалась
+   ```
+
+2. Клонуйте репозиторій та перейдіть у папку проєкту:
+
+   ```bash
+   git clone https://github.com/<ваш-репо>/worship-lyrics.git
+   cd worship-lyrics
+   ```
+
+3. Створіть файл `.env` на сервері (не комітьте його в git):
+
+   ```bash
+   nano .env
+   ```
+
+   Додайте змінні (замініть значення на свої):
+
+   ```env
+   TELEGRAM_TOKEN=ваш_токен_бота
+   PCO_CLIENT_ID=ваш_client_id_planning_center
+   PCO_SECRET=ваш_secret_planning_center
+   ```
+
+   Опційно: `DATA_PATH` уже задано в `docker-compose.yml` для контейнера; для зміни шляху на хості можна змінити volume у compose.
+
+4. Зберіть образ і запустіть контейнер (каталог `data/` створиться автоматично при старті):
+
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+
+5. Перевірте роботу:
+
+   ```bash
+   docker compose logs -f bot
+   ```
+
+   Зупинка: `docker compose down`. Перезапуск після оновлення коду: `git pull && docker compose build && docker compose up -d`.
+
+### Варіант 2: Деплой без Docker (systemd)
+
+1. На сервері клонуйте репозиторій та налаштуйте середовище:
+
+   ```bash
+   git clone https://github.com/<ваш-репо>/worship-lyrics.git
+   cd worship-lyrics
+   python3.12 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. Створіть `.env` у корені проєкту (як у варіанті 1, крок 3).
+
+3. Встановіть Java (потрібно для LanguageTool):
+
+   ```bash
+   sudo apt update && sudo apt install -y default-jre-headless
+   ```
+
+4. Створіть unit systemd (замініть `semsan` на свого користувача та шлях до проєкту):
+
+   ```bash
+   sudo nano /etc/systemd/system/worship-lyrics.service
+   ```
+
+   Вміст файлу:
+
+   ```ini
+   [Unit]
+   Description=Worship Lyrics Telegram Bot
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=semsan
+   WorkingDirectory=/home/semsan/worship-lyrics
+   Environment="PATH=/home/semsan/worship-lyrics/.venv/bin"
+   ExecStart=/home/semsan/worship-lyrics/.venv/bin/python run.py
+   Restart=always
+   RestartSec=10
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+5. Увімкніть та запустіть сервіс:
+
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl enable worship-lyrics
+   sudo systemctl start worship-lyrics
+   sudo systemctl status worship-lyrics
+   ```
+
+   Логи: `journalctl -u worship-lyrics -f`. Після оновлення коду: `git pull`, потім `sudo systemctl restart worship-lyrics`.
+
+### Після деплою
+
+- **Резервні копії**: періодично бекапте каталог `data/` (файл `songs.db`), якщо не використовуєте лише PCO як джерело правди.
+- **Оновлення**: при оновленні залежностей (`requirements.txt`) перезберіть образ Docker або перестворіть venv і перезапустіть systemd-сервіс.
+- **Webhook**: якщо потрібен webhook, налаштуйте змінну `WEBHOOK_URL`, відкрийте порт 8080 (або інший) та при потребі — reverse proxy (nginx) з HTTPS.
 
 ---
 
