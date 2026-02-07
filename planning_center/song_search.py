@@ -123,6 +123,35 @@ class SongSearchService:
         lyrics_raw = song_data['data'][0]['attributes'].get('lyrics')
         return lyrics_raw if lyrics_raw is not None else 'Текст пісні відсутній.'
 
+    async def fetch_song_by_id(self, song_id: str) -> dict | None:
+        """
+        Повертає одну пісню з PCO у форматі для синхронізації (upsert_songs).
+
+        Використовується при обробці webhook-подій created/updated.
+
+        Args:
+            song_id: Ідентифікатор пісні в Planning Center.
+
+        Returns:
+            Словник {id, title, lyrics, updated_at?, created_at?} або None при помилці API.
+        """
+        url = f'{self.BASE_URL}/songs/{song_id}'
+        data = await self._get_response_json(url)
+        if not data or not data.get('data'):
+            logger.warning('[PCO] fetch_song_by_id: не вдалося отримати пісню song_id=%s', song_id)
+            return None
+        song = data['data']
+        attrs = song.get('attributes', {})
+        title = attrs.get('title', '')
+        lyrics = await self.get_song_text(song_id)
+        return {
+            'id': song_id,
+            'title': title,
+            'lyrics': lyrics or '',
+            'updated_at': attrs.get('updated_at'),
+            'created_at': attrs.get('created_at'),
+        }
+
     async def fetch_all_songs_with_lyrics(self) -> list[dict]:
         """
         Повертає всі пісні з PCO з текстами (для синхронізації в локальну БД).

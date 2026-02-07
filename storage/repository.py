@@ -42,6 +42,15 @@ class SongRepository(Protocol):
         """
         ...
 
+    def delete_song(self, song_id: str) -> None:
+        """
+        Видаляє пісню за ідентифікатором (для webhook-події destroyed).
+
+        Args:
+            song_id: Ідентифікатор пісні (PCO id).
+        """
+        ...
+
     def get_last_synced_at(self) -> datetime | None:
         """
         Повертає час останньої синхронізації БД з API.

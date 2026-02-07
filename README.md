@@ -7,10 +7,11 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 - **telegram/** — логіка бота (обробники, клавіатури, FSM, форматування, пагінація)
 - **storage/** — репозиторій пісень (SQLite)
 - **planning_center/** — клієнт Planning Center API (тільки для синхронізації)
-- **sync/** — синхронізація з PCO при старті, за розкладом, заглушка webhook
+- **sync/** — синхронізація з PCO при старті та за розкладом
 - **lyrics/** — fuzzy-пошук (LanguageTool + fuzzywuzzy), провайдер даних з репозиторію
 - **run.py** — точка входу (polling)
-- **webhook.py** — фабрика aiohttp-додатку для webhook-режиму та POST /pco-webhook
+- **run_webhook.py** — точка входу для webhook-режиму (aiohttp, POST /pco-webhook)
+- **webhook/** — фабрика aiohttp-додатку та обробка PCO webhooks (перевірка підпису, парсинг подій)
 - **config.py** — конфігурація з змінних середовища
 
 ## Вимоги
@@ -66,7 +67,22 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 
 ## Запуск у Docker
 
-1. Створіть файл `.env` у корені проєкту (як у пункті 3 вище).
+Конфіг `docker-compose.yml` за замовчуванням запускає бота в **webhook-режимі** (порт 8080, `run_webhook.py`).
+
+1. Створіть файл `.env` у корені проєкту. Для webhook-режиму обовʼязково вкажіть `WEBHOOK_URL`:
+
+   ```env
+   TELEGRAM_TOKEN=ваш_токен_бота
+   PCO_CLIENT_ID=ваш_client_id_planning_center
+   PCO_SECRET=ваш_secret_planning_center
+   DATA_PATH=data/songs.db
+
+   # Webhook (обовʼязково для режиму з docker compose)
+   WEBHOOK_URL=https://ваш-домен.com/webhook
+   PORT=8080
+   # Опційно — для перевірки підпису PCO на POST /pco-webhook
+   # PCO_WEBHOOK_AUTHENTICITY_SECRET=ваш_authenticity_secret
+   ```
 
 2. Зберіть образ і запустіть контейнер:
 
@@ -75,9 +91,11 @@ Telegram-бот для пошуку текстів пісень: усі пошу
    docker compose up -d
    ```
 
-   Каталог `data/` для SQLite створюється автоматично при старті бота. Логи: `docker compose logs -f bot`. Зупинка: `docker compose down`.
+   Каталог `data/` для SQLite створюється автоматично. Логи: `docker compose logs -f bot`. Зупинка: `docker compose down`.
 
-3. Для webhook-режиму розкоментуйте в `docker-compose.yml` секцію `ports` (8080) та додайте в `.env` змінну `WEBHOOK_URL`. Ендпоінт `POST /pco-webhook` зарезервовано для майбутньої інтеграції з PCO webhooks.
+   Доступні ендпоінти: `POST /webhook` (Telegram), `POST /pco-webhook` (події PCO song created/updated/destroyed). Перед ботом варто поставити reverse proxy (nginx/Caddy) з HTTPS і проксувати на `http://localhost:8080`.
+
+3. **Polling у Docker**: щоб використовувати polling замість webhook, у `docker-compose.yml` закоментуйте `ports` та замініть `command` на `["python3", "run.py"]`.
 
 ---
 
@@ -115,15 +133,16 @@ Telegram-бот для пошуку текстів пісень: усі пошу
    nano .env
    ```
 
-   Додайте змінні (замініть значення на свої):
+   Додайте змінні (замініть значення на свої). Для webhook-режиму (за замовчуванням у compose) обовʼязково вкажіть `WEBHOOK_URL`:
 
    ```env
    TELEGRAM_TOKEN=ваш_токен_бота
    PCO_CLIENT_ID=ваш_client_id_planning_center
    PCO_SECRET=ваш_secret_planning_center
+   WEBHOOK_URL=https://ваш-домен.com/webhook
    ```
 
-   Опційно: `DATA_PATH` уже задано в `docker-compose.yml` для контейнера; для зміни шляху на хості можна змінити volume у compose.
+   Опційно: `DATA_PATH` уже задано в `docker-compose.yml` для контейнера; для перевірки PCO webhooks — `PCO_WEBHOOK_AUTHENTICITY_SECRET`.
 
 4. Зберіть образ і запустіть контейнер (каталог `data/` створиться автоматично при старті):
 
@@ -201,7 +220,7 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 
 - **Резервні копії**: періодично бекапте каталог `data/` (файл `songs.db`), якщо не використовуєте лише PCO як джерело правди.
 - **Оновлення**: при оновленні залежностей (`requirements.txt`) перезберіть образ Docker або перестворіть venv і перезапустіть systemd-сервіс.
-- **Webhook**: якщо потрібен webhook, налаштуйте змінну `WEBHOOK_URL`, відкрийте порт 8080 (або інший) та при потребі — reverse proxy (nginx) з HTTPS.
+- **Webhook**: у Docker за замовчуванням використовується webhook-режим (порт 8080). Налаштуйте `WEBHOOK_URL` та при потребі — reverse proxy (nginx/Caddy) з HTTPS.
 
 ---
 
@@ -216,3 +235,4 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 | `SONGS_DATA_PATH` | ні          | Застаріло; залишено для сумісності (за замовч. `songs_data.json`)    |
 | `WEBHOOK_URL`     | ні          | URL для webhook Telegram (якщо використовується webhook)            |
 | `PORT`            | ні          | Порт для webhook-сервера (за замовч. 8080)                          |
+| `PCO_WEBHOOK_AUTHENTICITY_SECRET` | ні | Секрет перевірки підпису PCO (для POST /pco-webhook)   |

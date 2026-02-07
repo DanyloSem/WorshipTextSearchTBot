@@ -129,6 +129,18 @@ class SQLiteSongRepository:
             conn.commit()
         logger.info('[STORAGE] upsert_songs: записано записів=%s', len(songs))
 
+    def delete_song(self, song_id: str) -> None:
+        """
+        Видаляє пісню за ідентифікатором.
+
+        Args:
+            song_id: Ідентифікатор пісні (PCO id).
+        """
+        with self._get_connection() as conn:
+            conn.execute('DELETE FROM songs WHERE id = ?', (song_id,))
+            conn.commit()
+        logger.info('[STORAGE] delete_song: видалено song_id=%s', song_id)
+
     def get_last_synced_at(self) -> datetime | None:
         """
         Повертає час останньої синхронізації БД з API (UTC).

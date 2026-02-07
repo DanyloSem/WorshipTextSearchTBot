@@ -16,6 +16,7 @@ services:
       DATA_PATH: /worship_text_tbot/data/songs.db
     volumes:
       - ./data:/worship_text_tbot/data
-    # Для webhook-режиму розкоментуйте порт та додайте WEBHOOK_URL у .env
-    # ports:
-    #   - "8080:8080"
+    ports:
+      - "8080:8080"
+    # За замовчуванням — webhook-режим (run_webhook.py). Для polling замініть на: command: ["python3", "run.py"] і закоментуйте ports вище.
+    command: ["python3", "run_webhook.py"]
