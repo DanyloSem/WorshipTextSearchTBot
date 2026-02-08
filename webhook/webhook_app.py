@@ -95,7 +95,10 @@ class WebhookApp:
                 event_name,
             )
             return web.Response(status=401)
-        logger.debug('[WEBHOOK] PCO webhook: підпис перевірено для події %s', event_name)
+        logger.info(
+            '[WEBHOOK] PCO webhook: підпис перевірено успішно (подія=%s)',
+            event_name,
+        )
 
         action, song_id = parse_pco_webhook_event(body)
         logger.info(
