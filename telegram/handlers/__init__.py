@@ -61,12 +61,11 @@ def create_router(
         ),
     )
     router.include_router(get_song_router(repository))
-    router.include_router(get_search_router(fuzzy, repository))
-    router.include_router(get_inline_router(inlinesearch))
-    router.include_router(get_pagination_router())
-
     if telegram_admins and user_repository is not None:
         router.include_router(get_admin_router(telegram_admins, user_repository))
         logger.debug('Роутер: адмін-меню підключено для %s адмінів', len(telegram_admins))
+    router.include_router(get_search_router(fuzzy, repository))
+    router.include_router(get_inline_router(inlinesearch))
+    router.include_router(get_pagination_router())
 
     return router

@@ -29,14 +29,17 @@ def get_admin_router(
     Розблокувати: список заблокованих за blocked_at.
     """
     router = Router()
+    admin_ids_set = frozenset(telegram_admins)
+
+    def admin_filter(message: Message) -> bool:
+        """Фільтр: обробляти лише повідомлення від адмінів (щоб не перехоплювати пошук)."""
+        return message.from_user is not None and message.from_user.id in admin_ids_set
 
     def is_admin(user_id: int) -> bool:
-        return user_id in telegram_admins
+        return user_id in admin_ids_set
 
-    @router.message(F.text == kb.ADMIN_BTN_ADMINISTRATION)
+    @router.message(F.text == kb.ADMIN_BTN_ADMINISTRATION, admin_filter)
     async def admin_enter(message: Message, state: FSMContext) -> None:
-        if not message.from_user or not is_admin(message.from_user.id):
-            return
         await state.clear()
         await state.set_state(AdminState.admin_menu)
         await message.answer(
@@ -44,10 +47,8 @@ def get_admin_router(
             reply_markup=kb.admin_menu_keyboard,
         )
 
-    @router.message(AdminState.admin_menu, F.text == kb.ADMIN_BTN_BLOCK_USER)
+    @router.message(AdminState.admin_menu, F.text == kb.ADMIN_BTN_BLOCK_USER, admin_filter)
     async def admin_block_list(message: Message, state: FSMContext) -> None:
-        if not message.from_user or not is_admin(message.from_user.id):
-            return
         users = user_repository.list_all_ordered_by_last_active()
         keyboard, text_to_user_id = kb.create_admin_user_list_keyboard(users)
         await state.set_state(AdminState.block_choose_user)
@@ -57,10 +58,8 @@ def get_admin_router(
             reply_markup=keyboard,
         )
 
-    @router.message(AdminState.admin_menu, F.text == kb.ADMIN_BTN_UNBLOCK_USER)
+    @router.message(AdminState.admin_menu, F.text == kb.ADMIN_BTN_UNBLOCK_USER, admin_filter)
     async def admin_unblock_list(message: Message, state: FSMContext) -> None:
-        if not message.from_user or not is_admin(message.from_user.id):
-            return
         users = user_repository.list_blocked_ordered_by_blocked_at()
         if not users:
             await message.answer(
@@ -76,19 +75,17 @@ def get_admin_router(
             reply_markup=keyboard,
         )
 
-    @router.message(AdminState.admin_menu, F.text == kb.ADMIN_BTN_BACK)
+    @router.message(AdminState.admin_menu, F.text == kb.ADMIN_BTN_BACK, admin_filter)
     async def admin_back_to_main(message: Message, state: FSMContext) -> None:
-        if not message.from_user or not is_admin(message.from_user.id):
-            return
         await state.clear()
         await message.answer(
             'Повернувся до головного меню.',
             reply_markup=kb.return_to_search_with_admin_keyboard,
         )
 
-    @router.message(AdminState.block_choose_user, F.text)
+    @router.message(AdminState.block_choose_user, F.text, admin_filter)
     async def admin_block_confirm(message: Message, state: FSMContext) -> None:
-        if not message.from_user or not is_admin(message.from_user.id) or not message.text:
+        if not message.text:
             return
         if message.text == kb.ADMIN_BTN_BACK:
             await state.set_state(AdminState.admin_menu)
@@ -119,9 +116,9 @@ def get_admin_router(
             reply_markup=kb.admin_menu_keyboard,
         )
 
-    @router.message(AdminState.unblock_choose_user, F.text)
+    @router.message(AdminState.unblock_choose_user, F.text, admin_filter)
     async def admin_unblock_confirm(message: Message, state: FSMContext) -> None:
-        if not message.from_user or not is_admin(message.from_user.id) or not message.text:
+        if not message.text:
             return
         if message.text == kb.ADMIN_BTN_BACK:
             await state.set_state(AdminState.admin_menu)

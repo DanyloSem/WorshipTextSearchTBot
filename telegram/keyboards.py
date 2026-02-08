@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 
 RETURN_TO_SEARCH_TEXT = '🔍 Повернутися до пошуку'
 
-ADMIN_BTN_ADMINISTRATION = 'Адміністрування'
-ADMIN_BTN_BLOCK_USER = 'Заблокувати користувача'
-ADMIN_BTN_UNBLOCK_USER = 'Розблокувати користувача'
-ADMIN_BTN_BACK = 'Повернутись'
+ADMIN_BTN_ADMINISTRATION = '🛠️ Адміністрування'
+ADMIN_BTN_BLOCK_USER = '🚫 Заблокувати користувача'
+ADMIN_BTN_UNBLOCK_USER = '🔓 Розблокувати користувача'
+ADMIN_BTN_BACK = '◀️ Повернутись'
 
 
 class Keyboards:
