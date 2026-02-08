@@ -8,82 +8,92 @@ def parse_pco_webhook_event(body: bytes) -> tuple[str | None, str | None]:
     """
     Визначає action (created/updated/destroyed) та ідентифікатор пісні з тіла події.
 
-    Підтримує формат подій Services API (наприклад services.v2.events.song.created).
-    Якщо подія не стосується song або id відсутній, повертає (None, None).
+    Підтримує формат PCO: data — масив EventDelivery; у кожного attributes.name та
+    attributes.payload (рядок JSON). Події song.* та arrangement.* (для оновлення пісні за arrangement).
+    Якщо подія не стосується song/arrangement або song_id відсутній, повертає (None, None).
 
     Args:
         body: Сире тіло POST-запиту (JSON).
 
     Returns:
         Пара (action, song_id). action — 'created', 'updated' або 'destroyed';
-        song_id — ідентифікатор пісні в PCO. Якщо подія не для song або id немає — (None, None).
+        song_id — ідентифікатор пісні в PCO. Якщо подія не підходить або id немає — (None, None).
     """
     try:
-        payload = json.loads(body.decode('utf-8'))
+        root = json.loads(body.decode('utf-8'))
     except (json.JSONDecodeError, UnicodeDecodeError):
         return (None, None)
 
-    action = _extract_action(payload)
+    raw_data = root.get('data')
+    if isinstance(raw_data, list) and raw_data:
+        item = raw_data[0]
+    elif isinstance(raw_data, dict):
+        item = raw_data
+    else:
+        return (None, None)
+
+    attrs = item.get('attributes') or {}
+    name = attrs.get('name')
+    if not name or not isinstance(name, str):
+        return (None, None)
+
+    action = _action_from_event_name(name)
     if action is None:
         return (None, None)
 
-    song_id = _extract_song_id(payload)
+    payload_str = attrs.get('payload')
+    if not isinstance(payload_str, str):
+        return (None, None)
+    try:
+        inner = json.loads(payload_str)
+    except json.JSONDecodeError:
+        return (None, None)
+
+    song_id = _song_id_from_inner_payload(inner)
     if not song_id or not str(song_id).strip():
         return (None, None)
 
     return (action, str(song_id))
 
 
-def _extract_action(payload: Any) -> str | None:
-    """Повертає 'created', 'updated' або 'destroyed', якщо подія стосується song."""
-    name = _get_nested(payload, 'data', 'attributes', 'name')
-    if not name or not isinstance(name, str):
-        name = _get_nested(payload, 'attributes', 'name')
-    if not name or not isinstance(name, str):
-        return None
+def _action_from_event_name(name: str) -> str | None:
+    """
+    Повертає 'created'/'updated'/'destroyed' для подій song.* або arrangement.*.
+    Arrangement оновлення/видалення трактуємо як оновлення пісні (refetch); лише song.destroyed — видалення.
+    """
     name_lower = name.lower()
-    if not ('.song.created' in name_lower or '.song.updated' in name_lower or '.song.destroyed' in name_lower):
-        return None
-    if name_lower.endswith('.created'):
+    if '.song.created' in name_lower or '.arrangement.created' in name_lower:
         return 'created'
-    if name_lower.endswith('.updated'):
+    if (
+        '.song.updated' in name_lower
+        or '.arrangement.updated' in name_lower
+        or '.arrangement.destroyed' in name_lower
+    ):
         return 'updated'
-    if name_lower.endswith('.destroyed'):
+    if '.song.destroyed' in name_lower:
         return 'destroyed'
     return None
 
 
-def _extract_song_id(payload: Any) -> str | None:
-    """Витягує ідентифікатор пісні з data.id або з вкладеного payload (string JSON)."""
-    def _norm_id(value: Any) -> str | None:
-        if value is None:
+def _song_id_from_inner_payload(inner: Any) -> str | None:
+    """
+    Витягує song_id з розпарсеного attributes.payload.
+    Тип Song: data.id; тип Arrangement: data.relationships.song.data.id.
+    """
+    def _norm(v: Any) -> str | None:
+        if v is None:
             return None
-        s = str(value).strip()
+        s = str(v).strip()
         return s if s else None
 
-    data = payload.get('data')
-    if isinstance(data, dict):
-        resource_id = data.get('id')
-        if _norm_id(resource_id):
-            return _norm_id(resource_id)
-        inner_payload = data.get('attributes', {}).get('payload') or data.get('payload')
-        if isinstance(inner_payload, str):
-            try:
-                inner = json.loads(inner_payload)
-                return _norm_id(_get_nested(inner, 'data', 'id')) or _norm_id(
-                    _get_nested(inner, 'data', 'attributes', 'id'),
-                )
-            except json.JSONDecodeError:
-                pass
-    inner = _get_nested(payload, 'data', 'attributes', 'payload')
-    if isinstance(inner, str):
-        try:
-            parsed = json.loads(inner)
-            return _norm_id(_get_nested(parsed, 'data', 'id')) or _norm_id(
-                _get_nested(parsed, 'data', 'attributes', 'id'),
-            )
-        except json.JSONDecodeError:
-            pass
+    data = inner.get('data')
+    if not isinstance(data, dict):
+        return None
+    resource_type = (data.get('type') or '').strip()
+    if resource_type == 'Song':
+        return _norm(data.get('id'))
+    if resource_type == 'Arrangement':
+        return _norm(_get_nested(data, 'relationships', 'song', 'data', 'id'))
     return None
 
 
