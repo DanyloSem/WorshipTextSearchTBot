@@ -112,9 +112,9 @@ def get_start_router(
         )
         logger.debug('[START] Адмін повернувся в меню вибору зі стану display_songs')
 
-    def main_menu_any_text_filter(message: Message, data: dict) -> bool:
+    def main_menu_any_text_filter(message: Message, **kwargs: object) -> bool:
         """Пропускає лише в головному меню (стан порожній), не на кнопки вибору."""
-        state = data.get('state')
+        state = kwargs.get('state')
         if not isinstance(state, FSMContext) or state.get_state() is not None:
             return False
         if message.text in (kb.TEXT_SEARCH_BTN, kb.ADMIN_BTN_ADMINISTRATION):
