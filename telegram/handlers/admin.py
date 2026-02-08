@@ -79,7 +79,7 @@ def get_admin_router(
     async def admin_back_to_main(message: Message, state: FSMContext) -> None:
         await state.clear()
         await message.answer(
-            'Ось головне меню.',
+            'Головне меню.',
             reply_markup=kb.return_to_search_with_admin_keyboard,
         )
 

@@ -112,4 +112,28 @@ def get_start_router(
         )
         logger.debug('[START] Адмін повернувся в меню вибору зі стану display_songs')
 
+    def main_menu_any_text_filter(message: Message, **kwargs: object) -> bool:
+        """Пропускає лише в головному меню (стан порожній), не на кнопки вибору."""
+        state = kwargs.get('state')
+        if not isinstance(state, FSMContext) or state.get_state() is not None:
+            return False
+        if message.text in (kb.TEXT_SEARCH_BTN, kb.ADMIN_BTN_ADMINISTRATION):
+            return False
+        return True
+
+    @router.message(F.text, main_menu_any_text_filter)
+    async def main_menu_reminder(message: Message, state: FSMContext) -> None:
+        """Заглушка: нагадування обрати дію кнопкою, якщо в головному меню написали текст."""
+        if not message.from_user:
+            return
+        reply_markup = (
+            kb.return_to_search_with_admin_keyboard
+            if is_admin(message.from_user.id)
+            else kb.return_to_search_keyboard
+        )
+        await message.answer(
+            'Будь ласка, обери дію, натиснувши кнопку нижче 👇',
+            reply_markup=reply_markup,
+        )
+
     return router
