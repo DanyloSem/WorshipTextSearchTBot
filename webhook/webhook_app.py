@@ -61,6 +61,7 @@ class WebhookApp:
             request.path,
         )
         body = await request.read()
+        app = request.app
         logger.info('[WEBHOOK] PCO webhook: тіло запиту len=%s bytes', len(body))
         try:
             body_json = json.loads(body.decode('utf-8'))
