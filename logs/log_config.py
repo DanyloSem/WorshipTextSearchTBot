@@ -7,9 +7,9 @@ LOG_DIR = 'logs'
 LOG_FILE = os.path.join(LOG_DIR, 'telegram_bot.log')
 os.makedirs(LOG_DIR, exist_ok=True)
 
-# Ротація: max 5 MB на файл, зберігати до 10 архівів (найстаріший видаляється)
+# Ротація: max 5 MB на файл, зберігати до 5 архівів (найстаріший видаляється)
 LOG_MAX_BYTES = 5 * 1024 * 1024
-LOG_BACKUP_COUNT = 10
+LOG_BACKUP_COUNT = 5
 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handlers: list[logging.Handler] = []

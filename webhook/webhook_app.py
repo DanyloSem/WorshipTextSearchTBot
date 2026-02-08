@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Any
 
@@ -57,6 +58,17 @@ class WebhookApp:
         )
         body = await request.read()
         logger.info('[WEBHOOK] PCO webhook: тіло запиту len=%s bytes', len(body))
+        try:
+            body_json = json.loads(body.decode('utf-8'))
+            body_pretty = json.dumps(body_json, indent=2, ensure_ascii=False)
+            logger.info('[WEBHOOK] PCO webhook: тіло запиту (JSON):\n%s', body_pretty)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            raw_preview = body.decode('utf-8', errors='replace')[:2000]
+            logger.info(
+                '[WEBHOOK] PCO webhook: тіло не JSON (err=%s), raw preview:\n%s',
+                e,
+                raw_preview,
+            )
 
         app = request.app
         secret = app.get('pco_webhook_authenticity_secret')
