@@ -11,9 +11,10 @@ from telegram.fsm import UserState
 from telegram.pagination import PAGE_SIZE, chunk_songs, get_page_range
 
 
-def get_pagination_router() -> Router:
+def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
     """Повертає роутер з обробниками пагінації та повернення до пошуку."""
     router = Router()
+    admin_ids = frozenset(telegram_admins)
 
     @router.callback_query(F.data.startswith('page_'))
     async def process_page_callback(callback_query: CallbackQuery, state: FSMContext) -> None:
@@ -57,10 +58,18 @@ def get_pagination_router() -> Router:
     async def return_to_search_method(callback_query: CallbackQuery, state: FSMContext) -> None:
         user_id = callback_query.from_user.id if callback_query.from_user else None
         logger.info(
-            '[PAGINATION] Натиснуто "Повернутися до пошуку": user_id=%s',
+            '[PAGINATION] Натиснуто "Текстовий пошук": user_id=%s',
             user_id,
         )
-        await callback_query.message.answer('Введіть текст для пошуку:', reply_markup=kb.remove_keyboard)
+        reply_markup = (
+            kb.admin_back_only_keyboard
+            if callback_query.from_user and callback_query.from_user.id in admin_ids
+            else kb.return_to_search_keyboard
+        )
+        await callback_query.message.answer(
+            'Введіть текст для пошуку:',
+            reply_markup=reply_markup,
+        )
         await state.set_state(UserState.search_query)
         logger.debug('[PAGINATION] Стан встановлено: UserState.search_query')
         await callback_query.answer()

@@ -20,9 +20,16 @@ if TYPE_CHECKING:
 def get_search_router(
     fuzzy_search_service: FuzzySearchService,
     repository: 'SongRepository',
+    telegram_admins: tuple[int, ...] = (),
 ) -> Router:
     """Повертає роутер з обробниками пошуку (fuzzy по локальній БД) та відображення списку пісень."""
     router = Router()
+    admin_ids = frozenset(telegram_admins)
+
+    def _search_reply_markup(message: Message):
+        if message.from_user and message.from_user.id in admin_ids:
+            return kb.admin_back_only_keyboard
+        return kb.return_to_search_keyboard
 
     async def display_songs_list(message: Message, state: FSMContext) -> None:
         """Відображає першу сторінку результатів пошуку."""
@@ -47,27 +54,36 @@ def get_search_router(
             )
             answer = f'📖 Пісні від {start} до {end}:\n\n{songs_list}'
             await message.answer(answer, reply_markup=pagination_keyboard)
-            await message.answer('👇 Новий пошук — кнопка нижче', reply_markup=kb.return_to_search_keyboard)
+            await message.answer(
+                '👇 Новий пошук — кнопка нижче',
+                reply_markup=_search_reply_markup(message),
+            )
         else:
             logger.info('[SEARCH] Результатів пошуку немає, запит нового тексту')
-            await message.answer('Жодної пісні не знайдено. Введіть текст для пошуку:', reply_markup=kb.remove_keyboard)
+            await message.answer(
+                'Жодної пісні не знайдено. Введіть текст для пошуку:',
+                reply_markup=_search_reply_markup(message),
+            )
             await state.set_state(UserState.search_query)
 
-    @router.message(UserState.search_query, F.text == kb.RETURN_TO_SEARCH_TEXT)
+    @router.message(UserState.search_query, F.text == kb.TEXT_SEARCH_BTN)
     async def return_to_search_from_reply_in_query(message: Message, state: FSMContext) -> None:
-        """Обробляє натискання «Повернутися до пошуку», коли стан вже search_query (наприклад після /id_*)."""
+        """Обробляє натискання «Текстовий пошук», коли стан вже search_query (повторний ввід)."""
         user_id = message.from_user.id if message.from_user else None
         logger.info(
-            '[SEARCH] Натиснуто «Повернутися до пошуку» у стані search_query: user_id=%s',
+            '[SEARCH] Натиснуто «Текстовий пошук» у стані search_query: user_id=%s',
             user_id,
         )
-        await message.answer('Введіть текст для пошуку:', reply_markup=kb.remove_keyboard)
-        logger.debug('[SEARCH] Клавіатуру прибрано, очікуємо текст пошуку')
+        await message.answer(
+            'Введіть текст для пошуку:',
+            reply_markup=_search_reply_markup(message),
+        )
+        logger.debug('[SEARCH] Очікуємо текст пошуку')
 
     @router.message(
         UserState.search_query,
         ~F.text.startswith('/id_'),
-        F.text != kb.RETURN_TO_SEARCH_TEXT,
+        F.text != kb.TEXT_SEARCH_BTN,
     )
     async def process_search_query(message: Message, state: FSMContext) -> None:
         """Шукає по фрагменту тексту (fuzzy) по локальній БД, показує список пісень."""
@@ -98,15 +114,18 @@ def get_search_router(
         await state.set_state(UserState.display_songs)
         await display_songs_list(message, state)
 
-    @router.message(UserState.display_songs, F.text == kb.RETURN_TO_SEARCH_TEXT)
+    @router.message(UserState.display_songs, F.text == kb.TEXT_SEARCH_BTN)
     async def return_to_search_from_reply(message: Message, state: FSMContext) -> None:
-        """Обробляє натискання reply-кнопки «Повернутися до пошуку»."""
+        """Обробляє натискання reply-кнопки «Текстовий пошук»."""
         user_id = message.from_user.id if message.from_user else None
         logger.info(
-            '[SEARCH] Натиснуто «Повернутися до пошуку» (reply): user_id=%s',
+            '[SEARCH] Натиснуто «Текстовий пошук» (reply): user_id=%s',
             user_id,
         )
-        await message.answer('Введіть текст для пошуку:', reply_markup=kb.remove_keyboard)
+        await message.answer(
+            'Введіть текст для пошуку:',
+            reply_markup=_search_reply_markup(message),
+        )
         await state.set_state(UserState.search_query)
         logger.debug('[SEARCH] Стан встановлено: UserState.search_query')
 
@@ -119,6 +138,6 @@ def get_search_router(
             user_id,
             message.text,
         )
-        await message.reply('Будь ласка оберіть пісню, або натисніть:\n🔍 Повернутися до пошуку.')
+        await message.reply(f'Будь ласка оберіть пісню, або натисніть:\n{kb.TEXT_SEARCH_BTN}.')
 
     return router

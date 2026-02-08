@@ -1,11 +1,11 @@
-"""Обробник команди /start."""
+"""Обробник команди /start та входу в сценарії (Текстовий пошук / Повернутись)."""
 
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
@@ -23,12 +23,16 @@ def get_start_router(
     user_repository: 'UserRepository | None' = None,
 ) -> Router:
     """
-    Повертає роутер з обробником команди /start.
+    Повертає роутер з обробником /start та входу в сценарій пошуку.
 
-    При наявності user_repository виконує upsert користувача в БД та показує
-    кнопку «Адміністрування» для користувачів з telegram_admins.
+    Після /start показує меню вибору (Текстовий пошук + Адміністрування для адміна).
+    Обробник «Текстовий пошук» входить у пошук; «Повернутись» у стані пошуку (адмін) повертає в меню.
     """
     router = Router()
+    admin_ids = frozenset(telegram_admins)
+
+    def is_admin(uid: int) -> bool:
+        return uid in admin_ids
 
     @router.message(CommandStart())
     async def cmd_start(message: Message, state: FSMContext) -> None:
@@ -45,29 +49,67 @@ def get_start_router(
 
         if user_repository is not None:
             now_iso = datetime.now(timezone.utc).isoformat()
-            is_admin = user_id in telegram_admins
             user_repository.upsert_from_telegram_user(
                 user_id=user_id,
                 username=user.username,
                 first_name=user.first_name,
                 last_name=user.last_name,
                 phone=getattr(user, 'phone_number', None),
-                is_admin=is_admin,
+                is_admin=is_admin(user_id),
                 now_iso=now_iso,
             )
             reply_markup = (
                 kb.return_to_search_with_admin_keyboard
-                if is_admin
-                else kb.remove_keyboard
+                if is_admin(user_id)
+                else kb.return_to_search_keyboard
             )
         else:
-            reply_markup = kb.remove_keyboard
+            reply_markup = kb.return_to_search_keyboard
 
+        await state.clear()
         await message.answer(
-            f'👋 Слава Ісусу Христу, {first_name}!\nДля пошуку, введи фрагмент тексту або назву пісні:',
+            f'👋 Слава Ісусу Христу, {first_name}!\nНатисніть «Текстовий пошук» для пошуку пісень.',
             reply_markup=reply_markup,
         )
+        logger.debug('[START] Меню вибору сценаріїв')
+
+    @router.message(F.text == kb.TEXT_SEARCH_BTN)
+    async def enter_text_search(message: Message, state: FSMContext) -> None:
+        if not message.from_user:
+            return
+        user_id = message.from_user.id
         await state.set_state(UserState.search_query)
-        logger.debug('[START] Стан встановлено: UserState.search_query')
+        reply_markup = (
+            kb.admin_back_only_keyboard
+            if is_admin(user_id)
+            else kb.return_to_search_keyboard
+        )
+        await message.answer(
+            'Введіть фрагмент тексту або назву пісні:',
+            reply_markup=reply_markup,
+        )
+        logger.debug('[START] Вхід у сценарій пошуку: user_id=%s', user_id)
+
+    @router.message(UserState.search_query, F.text == kb.ADMIN_BTN_BACK)
+    async def back_to_menu_from_search_query(message: Message, state: FSMContext) -> None:
+        if not message.from_user or not is_admin(message.from_user.id):
+            return
+        await state.clear()
+        await message.answer(
+            'Оберіть дію:',
+            reply_markup=kb.return_to_search_with_admin_keyboard,
+        )
+        logger.debug('[START] Адмін повернувся в меню вибору зі стану search_query')
+
+    @router.message(UserState.display_songs, F.text == kb.ADMIN_BTN_BACK)
+    async def back_to_menu_from_display_songs(message: Message, state: FSMContext) -> None:
+        if not message.from_user or not is_admin(message.from_user.id):
+            return
+        await state.clear()
+        await message.answer(
+            'Оберіть дію:',
+            reply_markup=kb.return_to_search_with_admin_keyboard,
+        )
+        logger.debug('[START] Адмін повернувся в меню вибору зі стану display_songs')
 
     return router

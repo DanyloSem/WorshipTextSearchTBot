@@ -13,7 +13,9 @@ from telegram.get_user_id import get_chat_id_from_update, get_user_id_from_updat
 if TYPE_CHECKING:
     from aiogram import Bot
 
-THROTTLE_MESSAGE = 'Забагато запитів, почекайте %s с.'
+THROTTLE_MESSAGE = (
+    'Ви надсилаєте забагато запитів. Будь ласка, трохи сповільніться.'
+)
 
 
 class ThrottleMiddleware(BaseMiddleware):
@@ -25,8 +27,8 @@ class ThrottleMiddleware(BaseMiddleware):
 
     def __init__(
         self,
-        rate_limit: int = 10,
-        window_seconds: float = 20.0,
+        rate_limit: int = 1,
+        window_seconds: float = 1.0,
         bot: 'Bot | None' = None,
     ) -> None:
         self._rate_limit = rate_limit
@@ -60,13 +62,9 @@ class ThrottleMiddleware(BaseMiddleware):
             )
             bot = self._bot or data.get('bot')
             chat_id = get_chat_id_from_update(event)
-            if bot and chat_id is not None and timestamps:
-                wait_sec = max(1, int(self._window_seconds - (now - timestamps[0])))
+            if bot and chat_id is not None:
                 try:
-                    await bot.send_message(
-                        chat_id=chat_id,
-                        text=THROTTLE_MESSAGE % wait_sec,
-                    )
+                    await bot.send_message(chat_id=chat_id, text=THROTTLE_MESSAGE)
                 except Exception:
                     logger.exception('[THROTTLE] Не вдалося відправити повідомлення')
             return None

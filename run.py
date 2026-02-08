@@ -86,8 +86,8 @@ async def main() -> None:
     dp.update.middleware(UpdateLastActiveMiddleware(user_repository))
     dp.update.middleware(
         ThrottleMiddleware(
-            rate_limit=5,
-            window_seconds=20.0,
+            rate_limit=1,
+            window_seconds=1.0,
             bot=bot,
         ),
     )

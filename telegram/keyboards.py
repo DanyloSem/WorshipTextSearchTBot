@@ -15,7 +15,8 @@ from aiogram.types import (
 if TYPE_CHECKING:
     from storage.user_record import UserRecord
 
-RETURN_TO_SEARCH_TEXT = '🔍 Повернутися до пошуку'
+TEXT_SEARCH_BTN = 'Текстовий пошук'
+RETURN_TO_SEARCH_TEXT = TEXT_SEARCH_BTN
 
 ADMIN_BTN_ADMINISTRATION = '🛠️ Адміністрування'
 ADMIN_BTN_BLOCK_USER = '🚫 Заблокувати користувача'
@@ -28,13 +29,13 @@ class Keyboards:
     Константи розміток та фабрика клавіатури пагінації.
 
     До 5 кнопок сторінок (поточну в центрі при багатьох сторінках).
-    Кнопка «Повернутися до пошуку» — reply, під полем введення.
+    Кнопка «Текстовий пошук» — reply; для адміна також «Повернутись» під час пошуку.
     """
 
     remove_keyboard = ReplyKeyboardRemove()
 
     return_to_search_keyboard = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=RETURN_TO_SEARCH_TEXT)]],
+        keyboard=[[KeyboardButton(text=TEXT_SEARCH_BTN)]],
         resize_keyboard=True,
     )
 
@@ -85,8 +86,8 @@ class Keyboards:
 
     return_to_search_with_admin_keyboard = ReplyKeyboardMarkup(
         keyboard=[
+            [KeyboardButton(text=TEXT_SEARCH_BTN)],
             [KeyboardButton(text=ADMIN_BTN_ADMINISTRATION)],
-            [KeyboardButton(text=RETURN_TO_SEARCH_TEXT)],
         ],
         resize_keyboard=True,
     )
