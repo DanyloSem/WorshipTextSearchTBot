@@ -25,7 +25,7 @@ class ThrottleMiddleware(BaseMiddleware):
 
     def __init__(
         self,
-        rate_limit: int = 5,
+        rate_limit: int = 10,
         window_seconds: float = 20.0,
         bot: 'Bot | None' = None,
     ) -> None:
