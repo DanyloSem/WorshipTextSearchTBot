@@ -15,7 +15,7 @@ from aiogram.types import (
 if TYPE_CHECKING:
     from storage.user_record import UserRecord
 
-TEXT_SEARCH_BTN = 'Текстовий пошук'
+TEXT_SEARCH_BTN = '🔍 Текстовий пошук'
 RETURN_TO_SEARCH_TEXT = TEXT_SEARCH_BTN
 
 ADMIN_BTN_ADMINISTRATION = '🛠️ Адміністрування'
@@ -29,7 +29,7 @@ class Keyboards:
     Константи розміток та фабрика клавіатури пагінації.
 
     До 5 кнопок сторінок (поточну в центрі при багатьох сторінках).
-    Кнопка «Текстовий пошук» — reply; для адміна також «Повернутись» під час пошуку.
+    Кнопка «🔍 Текстовий пошук» — reply; для адміна також «Повернутись» під час пошуку.
     """
 
     remove_keyboard = ReplyKeyboardRemove()
