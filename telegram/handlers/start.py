@@ -51,7 +51,7 @@ def get_start_router(
                 username=user.username,
                 first_name=user.first_name,
                 last_name=user.last_name,
-                phone=user.phone_number,
+                phone=getattr(user, 'phone_number', None),
                 is_admin=is_admin,
                 now_iso=now_iso,
             )
