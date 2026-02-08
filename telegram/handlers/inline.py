@@ -37,7 +37,7 @@ def get_inline_router(inline_search: InlineSearch) -> Router:
                     id='0',
                     title='Пісню не знайдено',
                     input_message_content=InputTextMessageContent(
-                        message_text='Пісню не знайдено. Спробуйте інший запит.',
+                        message_text='Пісню не знайдено. Спробуй інший запит.',
                     ),
                 ),
             ]

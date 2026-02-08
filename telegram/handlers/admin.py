@@ -43,7 +43,7 @@ def get_admin_router(
         await state.clear()
         await state.set_state(AdminState.admin_menu)
         await message.answer(
-            'Оберіть дію:',
+            'Обери дію:',
             reply_markup=kb.admin_menu_keyboard,
         )
 
@@ -54,7 +54,7 @@ def get_admin_router(
         await state.set_state(AdminState.block_choose_user)
         await state.update_data(button_to_user_id=text_to_user_id)
         await message.answer(
-            'Оберіть користувача для блокування:',
+            'Обери користувача для блокування:',
             reply_markup=keyboard,
         )
 
@@ -71,7 +71,7 @@ def get_admin_router(
         await state.set_state(AdminState.unblock_choose_user)
         await state.update_data(button_to_user_id=text_to_user_id)
         await message.answer(
-            'Оберіть користувача для розблокування:',
+            'Обери користувача для розблокування:',
             reply_markup=keyboard,
         )
 
@@ -79,7 +79,7 @@ def get_admin_router(
     async def admin_back_to_main(message: Message, state: FSMContext) -> None:
         await state.clear()
         await message.answer(
-            'Повернувся до головного меню.',
+            'Ось головне меню.',
             reply_markup=kb.return_to_search_with_admin_keyboard,
         )
 
@@ -90,7 +90,7 @@ def get_admin_router(
         if message.text == kb.ADMIN_BTN_BACK:
             await state.set_state(AdminState.admin_menu)
             await message.answer(
-                'Оберіть дію:',
+                'Обери дію:',
                 reply_markup=kb.admin_menu_keyboard,
             )
             return
@@ -98,7 +98,7 @@ def get_admin_router(
         button_to_user_id = data.get('button_to_user_id') or {}
         target_user_id = button_to_user_id.get(message.text)
         if target_user_id is None:
-            await message.answer('Оберіть користувача зі списку або натисніть «Повернутись».')
+            await message.answer('Обери користувача зі списку або натисни «Повернутись».')
             return
         if is_admin(target_user_id):
             await message.answer(
@@ -123,7 +123,7 @@ def get_admin_router(
         if message.text == kb.ADMIN_BTN_BACK:
             await state.set_state(AdminState.admin_menu)
             await message.answer(
-                'Оберіть дію:',
+                'Обери дію:',
                 reply_markup=kb.admin_menu_keyboard,
             )
             return
@@ -131,7 +131,7 @@ def get_admin_router(
         button_to_user_id = data.get('button_to_user_id') or {}
         target_user_id = button_to_user_id.get(message.text)
         if target_user_id is None:
-            await message.answer('Оберіть користувача зі списку або натисніть «Повернутись».')
+            await message.answer('Обери користувача зі списку або натисни «Повернутись».')
             return
         user_repository.set_unblocked(target_user_id)
         logger.info('[ADMIN] Розблоковано user_id=%s', target_user_id)

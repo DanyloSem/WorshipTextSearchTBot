@@ -67,7 +67,7 @@ def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
             else kb.return_to_search_keyboard
         )
         await callback_query.message.answer(
-            'Введіть текст для пошуку:',
+            'Введи текст для пошуку:',
             reply_markup=reply_markup,
         )
         await state.set_state(UserState.search_query)

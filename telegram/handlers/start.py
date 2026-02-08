@@ -68,7 +68,7 @@ def get_start_router(
 
         await state.clear()
         await message.answer(
-            f'👋 Слава Ісусу Христу, {first_name}!\nНатисніть «Текстовий пошук» для пошуку пісень.',
+            f'👋 Слава Ісусу Христу, {first_name}!\nНатисни «🔍 Текстовий пошук» для пошуку пісень.',
             reply_markup=reply_markup,
         )
         logger.debug('[START] Меню вибору сценаріїв')
@@ -85,7 +85,7 @@ def get_start_router(
             else kb.return_to_search_keyboard
         )
         await message.answer(
-            'Введіть фрагмент тексту або назву пісні:',
+            'Введи фрагмент тексту або назву пісні:',
             reply_markup=reply_markup,
         )
         logger.debug('[START] Вхід у сценарій пошуку: user_id=%s', user_id)
@@ -96,7 +96,7 @@ def get_start_router(
             return
         await state.clear()
         await message.answer(
-            'Оберіть дію:',
+            'Обери дію:',
             reply_markup=kb.return_to_search_with_admin_keyboard,
         )
         logger.debug('[START] Адмін повернувся в меню вибору зі стану search_query')
@@ -107,7 +107,7 @@ def get_start_router(
             return
         await state.clear()
         await message.answer(
-            'Оберіть дію:',
+            'Обери дію:',
             reply_markup=kb.return_to_search_with_admin_keyboard,
         )
         logger.debug('[START] Адмін повернувся в меню вибору зі стану display_songs')

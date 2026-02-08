@@ -61,7 +61,7 @@ def get_search_router(
         else:
             logger.info('[SEARCH] Результатів пошуку немає, запит нового тексту')
             await message.answer(
-                'Жодної пісні не знайдено. Введіть текст для пошуку:',
+                'Жодної пісні не знайдено. Введи текст для пошуку:',
                 reply_markup=_search_reply_markup(message),
             )
             await state.set_state(UserState.search_query)
@@ -75,7 +75,7 @@ def get_search_router(
             user_id,
         )
         await message.answer(
-            'Введіть текст для пошуку:',
+            'Введи текст для пошуку:',
             reply_markup=_search_reply_markup(message),
         )
         logger.debug('[SEARCH] Очікуємо текст пошуку')
@@ -123,7 +123,7 @@ def get_search_router(
             user_id,
         )
         await message.answer(
-            'Введіть текст для пошуку:',
+            'Введи текст для пошуку:',
             reply_markup=_search_reply_markup(message),
         )
         await state.set_state(UserState.search_query)
@@ -138,6 +138,6 @@ def get_search_router(
             user_id,
             message.text,
         )
-        await message.reply(f'Будь ласка оберіть пісню, або натисніть:\n{kb.TEXT_SEARCH_BTN}.')
+        await message.reply(f'Будь ласка обери пісню або натисни:\n{kb.TEXT_SEARCH_BTN}.')
 
     return router
