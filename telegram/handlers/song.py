@@ -24,7 +24,7 @@ def get_song_router(
 
     def _reply_markup(message: Message):
         if message.from_user and message.from_user.id in admin_ids:
-            return kb.admin_back_only_keyboard
+            return kb.admin_search_keyboard
         return kb.return_to_search_keyboard
 
     @router.message(F.text.startswith('/id_'))

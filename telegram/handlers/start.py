@@ -80,7 +80,7 @@ def get_start_router(
         user_id = message.from_user.id
         await state.set_state(UserState.search_query)
         reply_markup = (
-            kb.admin_back_only_keyboard
+            kb.admin_search_keyboard
             if is_admin(user_id)
             else kb.return_to_search_keyboard
         )

@@ -106,6 +106,14 @@ class Keyboards:
         resize_keyboard=True,
     )
 
+    admin_search_keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=TEXT_SEARCH_BTN)],
+            [KeyboardButton(text=ADMIN_BTN_BACK)],
+        ],
+        resize_keyboard=True,
+    )
+
     @staticmethod
     def create_admin_user_list_keyboard(users: 'list[UserRecord]') -> tuple[ReplyKeyboardMarkup, dict[str, int]]:
         """
@@ -154,4 +162,5 @@ create_pagination_keyboard = Keyboards.create_pagination_keyboard
 return_to_search_with_admin_keyboard = Keyboards.return_to_search_with_admin_keyboard
 admin_menu_keyboard = Keyboards.admin_menu_keyboard
 admin_back_only_keyboard = Keyboards.admin_back_only_keyboard
+admin_search_keyboard = Keyboards.admin_search_keyboard
 create_admin_user_list_keyboard = Keyboards.create_admin_user_list_keyboard

@@ -62,7 +62,7 @@ def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
             user_id,
         )
         reply_markup = (
-            kb.admin_back_only_keyboard
+            kb.admin_search_keyboard
             if callback_query.from_user and callback_query.from_user.id in admin_ids
             else kb.return_to_search_keyboard
         )

@@ -28,7 +28,7 @@ def get_search_router(
 
     def _search_reply_markup(message: Message):
         if message.from_user and message.from_user.id in admin_ids:
-            return kb.admin_back_only_keyboard
+            return kb.admin_search_keyboard
         return kb.return_to_search_keyboard
 
     async def display_songs_list(message: Message, state: FSMContext) -> None:
