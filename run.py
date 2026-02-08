@@ -23,9 +23,15 @@ from config import load_config
 from lyrics.fuzzy_search import FuzzySearchService
 from planning_center.song_search import SongSearchService
 from storage.sqlite_repository import SQLiteSongRepository
+from storage.user_repository import UserRepository
 from sync import run_once as sync_run_once
 from sync.scheduler import start_scheduler
 from telegram.handlers import create_router
+from telegram.middleware import (
+    BlockedCheckMiddleware,
+    ThrottleMiddleware,
+    UpdateLastActiveMiddleware,
+)
 from webhook import create_pco_only_app
 
 
@@ -65,14 +71,26 @@ async def main() -> None:
     pco_app = create_pco_only_app(pco_client, repository)
     pco_task = asyncio.create_task(_run_pco_webhook_server(pco_app, config.port))
 
+    user_repository = UserRepository(config.data_path)
     fuzzy_search_service = FuzzySearchService()
     logger.info('Збирання роутера з обробниками (локальна БД + fuzzy-пошук)')
     router = create_router(
         repository=repository,
         fuzzy_search_service=fuzzy_search_service,
+        telegram_admins=config.telegram_admins,
+        user_repository=user_repository,
     )
     bot = Bot(token=config.telegram_token)
     dp = Dispatcher()
+    dp.update.middleware(BlockedCheckMiddleware(user_repository))
+    dp.update.middleware(UpdateLastActiveMiddleware(user_repository))
+    dp.update.middleware(
+        ThrottleMiddleware(
+            rate_limit=5,
+            window_seconds=20.0,
+            bot=bot,
+        ),
+    )
     dp.include_router(router)
     logger.info('Webhook скинуто, запуск polling')
     try:

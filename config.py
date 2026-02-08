@@ -1,5 +1,6 @@
 """Об'єкт конфігурації з валідацією при старті."""
 
+import json
 import os
 from dataclasses import dataclass
 
@@ -19,7 +20,8 @@ class Config:
     data_path: str
     webhook_url: str | None = None
     port: int = 8080
-    log_level: str = 'INFO' # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    log_level: str = 'INFO'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    telegram_admins: tuple[int, ...] = ()
 
     @classmethod
     def from_env(cls) -> 'Config':
@@ -56,6 +58,13 @@ class Config:
         except ValueError:
             port = 8080
 
+        raw_admins = os.getenv('TELEGRAM_ADMINS', '[]')
+        try:
+            admin_ids = json.loads(raw_admins)
+            telegram_admins = tuple(int(x) for x in admin_ids) if admin_ids else ()
+        except (json.JSONDecodeError, TypeError, ValueError):
+            telegram_admins = ()
+
         return cls(
             telegram_token=telegram_token,
             client_id=client_id,
@@ -65,6 +74,7 @@ class Config:
             webhook_url=webhook_url or None,
             port=port,
             log_level=log_level,
+            telegram_admins=telegram_admins,
         )
 
 
