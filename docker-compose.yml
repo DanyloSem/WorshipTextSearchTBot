@@ -19,8 +19,9 @@ services:
       - ./logs:/worship_text_tbot/logs
     ports:
       - "8080:8080"
-    # За замовчуванням — webhook-режим (run_webhook.py). Для polling замініть на: command: ["python3", "run.py"] і закоментуйте ports вище.
-    command: ["python3", "run_webhook.py"]
+    # Telegram — polling; PCO оновлення — через webhook на /pco-webhook: "command: ["python3", "run.py"]"
+    # Telegram — webhook; PCO оновлення — через webhook на /pco-webhook: "command: ["python3", "run_webhook.py"]"
+    command: ["python3", "run.py"]
 
   cloudflared:
     image: cloudflare/cloudflared:latest
