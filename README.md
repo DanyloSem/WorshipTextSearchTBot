@@ -9,8 +9,8 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 - **planning_center/** — клієнт Planning Center API (тільки для синхронізації)
 - **sync/** — синхронізація з PCO при старті та за розкладом
 - **lyrics/** — fuzzy-пошук (LanguageTool + fuzzywuzzy), провайдер даних з репозиторію
-- **run.py** — точка входу (polling)
-- **run_webhook.py** — точка входу для webhook-режиму (aiohttp, POST /pco-webhook)
+- **run.py** — точка входу: Telegram — polling, PCO — прийом вебхуків на порту 8080 (POST /pco-webhook)
+- **run_webhook.py** — точка входу для повного webhook-режиму (Telegram + PCO на одному aiohttp-сервері)
 - **webhook/** — фабрика aiohttp-додатку та обробка PCO webhooks (перевірка підпису, парсинг подій)
 - **config.py** — конфігурація з змінних середовища
 
@@ -63,6 +63,8 @@ Telegram-бот для пошуку текстів пісень: усі пошу
    python3 run.py
    ```
 
+   У цьому режимі одночасно працюють **Telegram (polling)** та прийом **PCO вебхуків** на порту 8080 (шлях `/pco-webhook`). Для повноцінного Telegram webhook використовуйте `run_webhook.py`.
+
 ---
 
 ## Запуск у Docker
@@ -93,7 +95,7 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 
    Каталог `data/` для SQLite створюється автоматично. Логи: `docker compose logs -f bot`. Зупинка: `docker compose down`.
 
-   Доступні ендпоінти: `POST /webhook` (Telegram), `POST /pco-webhook` (події PCO song created/updated/destroyed). Перед ботом варто поставити reverse proxy (nginx/Caddy) з HTTPS і проксувати на `http://localhost:8080`.
+   Доступні ендпоінти: `POST /webhook` (Telegram), `POST /pco-webhook` (події PCO song created/updated/destroyed). Перед ботом варто поставити reverse proxy (nginx/Caddy) з HTTPS або Cloudflare Tunnel: у compose додано сервіс **cloudflared** — додайте в `.env` змінну `CF_TUNNEL_TOKEN` (токен з Cloudflare Zero Trust) і в налаштуванні тунеля вкажіть Public Hostname з origin `http://bot:8080`.
 
 3. **Polling у Docker**: щоб використовувати polling замість webhook, у `docker-compose.yml` закоментуйте `ports` та замініть `command` на `["python3", "run.py"]`.
 
@@ -234,5 +236,6 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 | `DATA_PATH`       | ні          | Шлях до файлу SQLite-бази пісень (за замовч. `data/songs.db`)        |
 | `SONGS_DATA_PATH` | ні          | Застаріло; залишено для сумісності (за замовч. `songs_data.json`)    |
 | `WEBHOOK_URL`     | ні          | URL для webhook Telegram (якщо використовується webhook)            |
-| `PORT`            | ні          | Порт для webhook-сервера (за замовч. 8080)                          |
+| `PORT`            | ні          | Порт для PCO webhook (run.py) або для повного webhook-сервера (run_webhook.py); за замовч. 8080 |
 | `PCO_WEBHOOK_AUTHENTICITY_SECRET` | ні | Секрет перевірки підпису PCO (для POST /pco-webhook)   |
+| `CF_TUNNEL_TOKEN`                 | ні | Токен Cloudflare Tunnel (для сервісу cloudflared у Docker) |

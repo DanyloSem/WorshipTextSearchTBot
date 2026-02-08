@@ -50,49 +50,74 @@ class WebhookApp:
         """
         Обробляє POST /pco-webhook: перевірка підпису, парсинг події, оновлення/видалення одного треку в SQLite.
         """
+        logger.info(
+            '[WEBHOOK] PCO webhook: отримано запит method=%s path=%s',
+            request.method,
+            request.path,
+        )
         body = await request.read()
+        logger.info('[WEBHOOK] PCO webhook: тіло запиту len=%s bytes', len(body))
+
         app = request.app
         secret = app.get('pco_webhook_authenticity_secret')
         if secret:
             signature = request.headers.get(PCO_AUTHENTICITY_HEADER)
             if not verify_pco_webhook_signature(body, signature, secret):
-                logger.warning('[WEBHOOK] PCO webhook: невалідний або відсутній підпис')
+                logger.warning(
+                    '[WEBHOOK] PCO webhook: невалідний або відсутній підпис, відповідь 401',
+                )
                 return web.Response(status=401)
+            logger.debug('[WEBHOOK] PCO webhook: підпис перевірено успішно')
         else:
-            logger.debug(
-                '[WEBHOOK] PCO webhook: authenticity secret не налаштовано, перевірку підпису пропущено',
+            logger.info(
+                '[WEBHOOK] PCO webhook: PCO_WEBHOOK_AUTHENTICITY_SECRET не налаштовано, перевірку підпису пропущено',
             )
 
         action, song_id = parse_pco_webhook_event(body)
+        logger.info(
+            '[WEBHOOK] PCO webhook: розпарсено action=%s song_id=%s',
+            action,
+            song_id,
+        )
         if action is None or song_id is None:
-            logger.info('[WEBHOOK] PCO webhook: подія не для song або id відсутній, ігноруємо')
+            logger.info(
+                '[WEBHOOK] PCO webhook: подія не для song або id відсутній, ігноруємо (відповідь 200)',
+            )
             return web.Response()
 
         pco_client = app.get('pco_client')
         repository = app.get('repository')
         if pco_client is None or repository is None:
-            logger.warning('[WEBHOOK] PCO webhook: pco_client або repository не передані в app')
+            logger.warning(
+                '[WEBHOOK] PCO webhook: pco_client або repository не передані в app, відповідь 200',
+            )
             return web.Response()
 
         try:
             if action == 'destroyed':
                 repository.delete_song(song_id)
-                logger.info('[WEBHOOK] PCO webhook: видалено пісню song_id=%s', song_id)
-            else:
-                song = await pco_client.fetch_song_by_id(song_id)
-                if song is None:
-                    logger.warning(
-                        '[WEBHOOK] PCO webhook: не вдалося отримати пісню з API song_id=%s',
-                        song_id,
-                    )
-                    return web.Response(status=500)
-                repository.upsert_songs([song])
-                logger.info('[WEBHOOK] PCO webhook: оновлено пісню song_id=%s action=%s', song_id, action)
+                logger.info('[WEBHOOK] PCO webhook: видалено пісню song_id=%s, відповідь 200', song_id)
+                return web.Response()
+            song = await pco_client.fetch_song_by_id(song_id)
+            if song is None:
+                logger.warning(
+                    '[WEBHOOK] PCO webhook: не вдалося отримати пісню з API song_id=%s, відповідь 500',
+                    song_id,
+                )
+                return web.Response(status=500)
+            repository.upsert_songs([song])
+            logger.info(
+                '[WEBHOOK] PCO webhook: оновлено пісню song_id=%s action=%s, відповідь 200',
+                song_id,
+                action,
+            )
+            return web.Response()
         except Exception:
-            logger.exception('[WEBHOOK] PCO webhook: помилка обробки події song_id=%s', song_id)
+            logger.exception(
+                '[WEBHOOK] PCO webhook: помилка обробки події song_id=%s, відповідь 500',
+                song_id,
+            )
             return web.Response(status=500)
-
-        return web.Response()
 
     @staticmethod
     def create_app(

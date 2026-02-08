@@ -20,3 +20,13 @@ services:
       - "8080:8080"
     # За замовчуванням — webhook-режим (run_webhook.py). Для polling замініть на: command: ["python3", "run.py"] і закоментуйте ports вище.
     command: ["python3", "run_webhook.py"]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: worship-lyrics-cloudflared
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ['tunnel', '--no-autoupdate', 'run', '--token', '${CF_TUNNEL_TOKEN}']
+    depends_on:
+      - bot

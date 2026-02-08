@@ -13,6 +13,7 @@ else:
     load_dotenv()
 
 # Логування має налаштовуватись до імпорту aiogram, інакше basicConfig() нічого не зробить
+from aiohttp import web
 from logs.log_config import apply_log_level, logger
 
 from aiogram import Bot, Dispatcher
@@ -25,10 +26,26 @@ from storage.sqlite_repository import SQLiteSongRepository
 from sync import run_once as sync_run_once
 from sync.scheduler import start_scheduler
 from telegram.handlers import create_router
+from webhook import create_pco_only_app
+
+
+async def _run_pco_webhook_server(pco_app: web.Application, port: int) -> None:
+    """Запускає aiohttp-сервер для PCO webhooks у фоні; при скасуванні задачі виконує cleanup."""
+    runner = web.AppRunner(pco_app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    logger.info('PCO webhook сервер слухає на порту %s', port)
+    try:
+        await asyncio.Event().wait()
+    except asyncio.CancelledError:
+        pass
+    finally:
+        await runner.cleanup()
 
 
 async def main() -> None:
-    """Запускає бота в режимі polling з інжекцією залежностей."""
+    """Запускає бота в режимі polling з інжекцією залежностей та PCO webhook у фоні."""
     logger.info('Завантаження конфігурації')
     config = load_config()
     apply_log_level(config.log_level)
@@ -44,6 +61,14 @@ async def main() -> None:
     logger.info('Синхронізація з PCO при старті')
     await sync_run_once(pco_client, repository)
     start_scheduler(pco_client, repository)
+
+    pco_app = create_pco_only_app(
+        pco_client,
+        repository,
+        config.pco_webhook_authenticity_secret,
+    )
+    pco_task = asyncio.create_task(_run_pco_webhook_server(pco_app, config.port))
+
     fuzzy_search_service = FuzzySearchService()
     logger.info('Збирання роутера з обробниками (локальна БД + fuzzy-пошук)')
     router = create_router(
@@ -63,6 +88,12 @@ async def main() -> None:
             'Перевірте .env та отримайте новий токен у @BotFather.',
         )
         raise
+    finally:
+        pco_task.cancel()
+        try:
+            await pco_task
+        except asyncio.CancelledError:
+            pass
 
 
 if __name__ == '__main__':

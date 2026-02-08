@@ -18,7 +18,7 @@ _SCHEDULED_HOURS = (0, 3, 6, 9, 12, 15, 18, 21)
 
 
 def _seconds_until_next_run() -> float:
-    """Повертає кількість секунд до наступної години з набору 3, 6, 9, 12."""
+    """Повертає кількість секунд до наступної години з набору 0, 3, 6, 9, 12, 15, 18, 21."""
     now = datetime.now(timezone.utc)
     current_hour = now.hour
     for h in _SCHEDULED_HOURS:
@@ -34,10 +34,10 @@ async def _scheduler_loop(
     pco_client: SongSearchService,
     repository: 'SongRepository',
 ) -> None:
-    """Цикл: sleep до наступної години 3/6/9/12, виклик run_once, повтор."""
+    """Цикл: sleep до наступної години 0/3/6/9/12/15/18/21, виклик run_once, повтор."""
     while True:
         delay = _seconds_until_next_run()
-        logger.info('[SCHEDULER] Наступний запуск синхронізації через %.0f с (години 3, 6, 9, 12)', delay)
+        logger.info('[SCHEDULER] Наступний запуск синхронізації через %.0f с (години 0, 3, 6, 9, 12, 15, 18, 21)', delay)
         await asyncio.sleep(delay)
         try:
             await run_once(pco_client, repository)
@@ -50,7 +50,7 @@ def start_scheduler(
     repository: 'SongRepository',
 ) -> asyncio.Task:
     """
-    Запускає фонову задачу синхронізації за розкладом 03:00, 06:00, 09:00, 12:00.
+    Запускає фонову задачу синхронізації за розкладом "оновлення кожні три години".
 
     Args:
         pco_client: Клієнт PCO API.
@@ -60,5 +60,5 @@ def start_scheduler(
         asyncio.Task фонової задачі.
     """
     task = asyncio.create_task(_scheduler_loop(pco_client, repository))
-    logger.info('[SCHEDULER] Планувальник синхронізації (3/6/9/12) запущено')
+    logger.info('[SCHEDULER] Планувальник синхронізації (0/3/6/9/12/15/18/21) запущено')
     return task
