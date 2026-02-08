@@ -32,10 +32,9 @@ def main() -> None:
     config = load_config()
     apply_log_level(config.log_level)
     logger.info(
-        'Конфіг завантажено: data_path=%s, port=%s, pco_webhook_secret=%s',
+        'Конфіг завантажено: data_path=%s, port=%s',
         config.data_path,
         config.port,
-        '***' if config.pco_webhook_authenticity_secret else None,
     )
     repository = SQLiteSongRepository(config.data_path)
     pco_client = SongSearchService(config)
@@ -54,13 +53,7 @@ def main() -> None:
     dp = Dispatcher()
     dp.include_router(router)
 
-    app = create_app(
-        bot,
-        dp,
-        pco_client=pco_client,
-        repository=repository,
-        pco_webhook_authenticity_secret=config.pco_webhook_authenticity_secret,
-    )
+    app = create_app(bot, dp, pco_client=pco_client, repository=repository)
     app.on_startup.append(startup_sync_and_scheduler)
 
     logger.info('Запуск webhook-сервера на порту %s', config.port)

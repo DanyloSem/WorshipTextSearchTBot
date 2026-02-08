@@ -8,7 +8,11 @@ from aiogram.types import Update
 
 from logs.log_config import logger
 
-from webhook.parse_pco_webhook_event import parse_pco_webhook_event
+from webhook.parse_pco_webhook_event import (
+    get_event_name_from_body,
+    get_secret_for_event,
+    parse_pco_webhook_event,
+)
 from webhook.verify_pco_webhook_signature import verify_pco_webhook_signature
 
 
@@ -70,20 +74,27 @@ class WebhookApp:
                 raw_preview,
             )
 
-        app = request.app
-        secret = app.get('pco_webhook_authenticity_secret')
-        if secret:
-            signature = request.headers.get(PCO_AUTHENTICITY_HEADER)
-            if not verify_pco_webhook_signature(body, signature, secret):
-                logger.warning(
-                    '[WEBHOOK] PCO webhook: невалідний або відсутній підпис, відповідь 401',
-                )
-                return web.Response(status=401)
-            logger.debug('[WEBHOOK] PCO webhook: підпис перевірено успішно')
-        else:
-            logger.info(
-                '[WEBHOOK] PCO webhook: PCO_WEBHOOK_AUTHENTICITY_SECRET не налаштовано, перевірку підпису пропущено',
+        event_name = get_event_name_from_body(body)
+        if not event_name:
+            logger.warning('[WEBHOOK] PCO webhook: не вдалося визначити event name, відповідь 401')
+            return web.Response(status=401)
+
+        secret = get_secret_for_event(event_name)
+        if not secret:
+            logger.warning(
+                '[WEBHOOK] PCO webhook: для події %s не налаштовано секрет у .env, відповідь 401',
+                event_name,
             )
+            return web.Response(status=401)
+
+        signature = request.headers.get(PCO_AUTHENTICITY_HEADER)
+        if not verify_pco_webhook_signature(body, signature, secret):
+            logger.warning(
+                '[WEBHOOK] PCO webhook: невалідний або відсутній підпис (подія=%s), відповідь 401',
+                event_name,
+            )
+            return web.Response(status=401)
+        logger.debug('[WEBHOOK] PCO webhook: підпис перевірено для події %s', event_name)
 
         action, song_id = parse_pco_webhook_event(body)
         logger.info(
@@ -137,7 +148,6 @@ class WebhookApp:
         dp: Dispatcher,
         pco_client: Any = None,
         repository: Any = None,
-        pco_webhook_authenticity_secret: str | None = None,
     ) -> web.Application:
         """
         Створює aiohttp Application для webhook.
@@ -147,7 +157,6 @@ class WebhookApp:
             dp: Інстанс Dispatcher.
             pco_client: Опційно — клієнт PCO для обробки подій song у /pco-webhook.
             repository: Опційно — репозиторій пісень для upsert/delete з /pco-webhook.
-            pco_webhook_authenticity_secret: Опційно — секрет для перевірки X-PCO-Webhooks-Authenticity.
 
         Returns:
             Налаштований aiohttp.Application.
@@ -157,7 +166,6 @@ class WebhookApp:
         app['dp'] = dp
         app['pco_client'] = pco_client
         app['repository'] = repository
-        app['pco_webhook_authenticity_secret'] = pco_webhook_authenticity_secret
         app.router.add_post('/webhook', WebhookApp.handle)
         app.router.add_post('/pco-webhook', WebhookApp.handle_pco_webhook)
         app.on_startup.append(WebhookApp.on_startup)

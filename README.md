@@ -82,8 +82,8 @@ Telegram-бот для пошуку текстів пісень: усі пошу
    # Webhook (обовʼязково для режиму з docker compose)
    WEBHOOK_URL=https://ваш-домен.com/webhook
    PORT=8080
-   # Опційно — для перевірки підпису PCO на POST /pco-webhook
-   # PCO_WEBHOOK_AUTHENTICITY_SECRET=ваш_authenticity_secret
+   # Перевірка підпису PCO: окремий секрет для кожного типу події (ім'я події → UPPER з _ замість .)
+   # Приклад: services.v2.events.arrangement.updated → SERVICES_V2_EVENTS_ARRANGEMENT_UPDATED=ваш_секрет
    ```
 
 2. Зберіть образ і запустіть контейнер:
@@ -144,7 +144,7 @@ Telegram-бот для пошуку текстів пісень: усі пошу
    WEBHOOK_URL=https://ваш-домен.com/webhook
    ```
 
-   Опційно: `DATA_PATH` уже задано в `docker-compose.yml` для контейнера; для перевірки PCO webhooks — `PCO_WEBHOOK_AUTHENTICITY_SECRET`.
+   Опційно: `DATA_PATH` уже задано в `docker-compose.yml` для контейнера. Для перевірки підпису PCO (HMAC-SHA256) вкажіть у .env секрет для кожного типу події: ім'я події перетворюється на ім'я змінної (наприклад `services.v2.events.arrangement.updated` → `SERVICES_V2_EVENTS_ARRANGEMENT_UPDATED`). Якщо для події секрет не заданий, запит відхиляється з 401.
 
 4. Зберіть образ і запустіть контейнер (каталог `data/` створиться автоматично при старті):
 
@@ -237,5 +237,5 @@ Telegram-бот для пошуку текстів пісень: усі пошу
 | `SONGS_DATA_PATH` | ні          | Застаріло; залишено для сумісності (за замовч. `songs_data.json`)    |
 | `WEBHOOK_URL`     | ні          | URL для webhook Telegram (якщо використовується webhook)            |
 | `PORT`            | ні          | Порт для PCO webhook (run.py) або для повного webhook-сервера (run_webhook.py); за замовч. 8080 |
-| `PCO_WEBHOOK_AUTHENTICITY_SECRET` | ні | Секрет перевірки підпису PCO (для POST /pco-webhook)   |
+| `SERVICES_V2_EVENTS_*` (наприклад `SERVICES_V2_EVENTS_ARRANGEMENT_UPDATED`) | ні | Секрет для перевірки підпису конкретної події (ім'я події → змінна: `services.v2.events.arrangement.updated` → `SERVICES_V2_EVENTS_ARRANGEMENT_UPDATED`). HMAC-SHA256 по тілу запиту. |
 | `CF_TUNNEL_TOKEN`                 | ні | Токен Cloudflare Tunnel (для сервісу cloudflared у Docker) |

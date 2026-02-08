@@ -20,7 +20,6 @@ class Config:
     webhook_url: str | None = None
     port: int = 8080
     log_level: str = 'INFO' # DEBUG, INFO, WARNING, ERROR, CRITICAL
-    pco_webhook_authenticity_secret: str | None = None
 
     @classmethod
     def from_env(cls) -> 'Config':
@@ -41,7 +40,6 @@ class Config:
         webhook_url = os.getenv('WEBHOOK_URL')
         port_str = os.getenv('PORT', '8080')
         log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-        pco_webhook_authenticity_secret = os.getenv('PCO_WEBHOOK_AUTHENTICITY_SECRET')
 
         missing = []
         if not telegram_token:
@@ -67,7 +65,6 @@ class Config:
             webhook_url=webhook_url or None,
             port=port,
             log_level=log_level,
-            pco_webhook_authenticity_secret=pco_webhook_authenticity_secret or None,
         )
 
 

@@ -1,7 +1,58 @@
 """Парсинг події PCO webhook для отримання action та song_id."""
 
 import json
+import os
 from typing import Any
+
+
+def get_event_name_from_body(body: bytes) -> str | None:
+    """
+    Повертає ім'я події з тіла webhook (data[0].attributes.name).
+
+    Args:
+        body: Сире тіло POST-запиту (JSON).
+
+    Returns:
+        Рядок типу 'services.v2.events.arrangement.updated' або None.
+    """
+    try:
+        root = json.loads(body.decode('utf-8'))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    raw_data = root.get('data')
+    if isinstance(raw_data, list) and raw_data:
+        item = raw_data[0]
+    elif isinstance(raw_data, dict):
+        item = raw_data
+    else:
+        return None
+    attrs = item.get('attributes') or {}
+    name = attrs.get('name')
+    return name if name and isinstance(name, str) else None
+
+
+def event_name_to_env_key(name: str) -> str:
+    """
+    Перетворює ім'я події на ім'я змінної середовища для секрету.
+
+    Приклад: services.v2.events.arrangement.updated → SERVICES_V2_EVENTS_ARRANGEMENT_UPDATED.
+    """
+    return name.strip().upper().replace('.', '_')
+
+
+def get_secret_for_event(event_name: str) -> str | None:
+    """
+    Повертає секрет для перевірки підпису змінної для даної події з os.environ.
+
+    Args:
+        event_name: Ім'я події (наприклад services.v2.events.arrangement.updated).
+
+    Returns:
+        Значення змінної (наприклад SERVICES_V2_EVENTS_ARRANGEMENT_UPDATED) або None.
+    """
+    key = event_name_to_env_key(event_name)
+    value = os.getenv(key)
+    return value.strip() if value and isinstance(value, str) and value.strip() else None
 
 
 def parse_pco_webhook_event(body: bytes) -> tuple[str | None, str | None]:
@@ -9,7 +60,7 @@ def parse_pco_webhook_event(body: bytes) -> tuple[str | None, str | None]:
     Визначає action (created/updated/destroyed) та ідентифікатор пісні з тіла події.
 
     Підтримує формат PCO: data — масив EventDelivery; у кожного attributes.name та
-    attributes.payload (рядок JSON). Події song.* та arrangement.* (для оновлення пісні за arrangement).
+    attributes.payload (рядок JSON або вже об'єкт). Події song.* та arrangement.*.
     Якщо подія не стосується song/arrangement або song_id відсутній, повертає (None, None).
 
     Args:
@@ -41,12 +92,15 @@ def parse_pco_webhook_event(body: bytes) -> tuple[str | None, str | None]:
     if action is None:
         return (None, None)
 
-    payload_str = attrs.get('payload')
-    if not isinstance(payload_str, str):
-        return (None, None)
-    try:
-        inner = json.loads(payload_str)
-    except json.JSONDecodeError:
+    payload_raw = attrs.get('payload')
+    if isinstance(payload_raw, dict):
+        inner = payload_raw
+    elif isinstance(payload_raw, str):
+        try:
+            inner = json.loads(payload_raw)
+        except json.JSONDecodeError:
+            return (None, None)
+    else:
         return (None, None)
 
     song_id = _song_id_from_inner_payload(inner)

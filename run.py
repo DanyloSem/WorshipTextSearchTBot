@@ -62,11 +62,7 @@ async def main() -> None:
     await sync_run_once(pco_client, repository)
     start_scheduler(pco_client, repository)
 
-    pco_app = create_pco_only_app(
-        pco_client,
-        repository,
-        config.pco_webhook_authenticity_secret,
-    )
+    pco_app = create_pco_only_app(pco_client, repository)
     pco_task = asyncio.create_task(_run_pco_webhook_server(pco_app, config.port))
 
     fuzzy_search_service = FuzzySearchService()

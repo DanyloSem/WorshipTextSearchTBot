@@ -11,7 +11,6 @@ def create_app(
     dp: Dispatcher,
     pco_client: Any = None,
     repository: Any = None,
-    pco_webhook_authenticity_secret: str | None = None,
 ) -> web.Application:
     """
     Створює aiohttp Application для прийому webhook від Telegram та PCO.
@@ -21,15 +20,8 @@ def create_app(
         dp: Інстанс Dispatcher.
         pco_client: Опційно — клієнт PCO для /pco-webhook.
         repository: Опційно — репозиторій для /pco-webhook.
-        pco_webhook_authenticity_secret: Опційно — секрет перевірки підпису PCO (з конфігу).
 
     Returns:
         Налаштований aiohttp.Application.
     """
-    return WebhookApp.create_app(
-        bot,
-        dp,
-        pco_client,
-        repository,
-        pco_webhook_authenticity_secret,
-    )
+    return WebhookApp.create_app(bot, dp, pco_client, repository)
