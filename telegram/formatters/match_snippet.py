@@ -5,31 +5,49 @@ _ELLIPSIS = '...'
 _TITLE_MATCH_LABEL = 'Назва пісні'
 
 
+def _fragment_matches_title(fragment: str, title: str) -> bool:
+    """
+    Перевіряє, чи фрагмент збігу відповідає назві (повний збіг або фрагмент у назві).
+
+    Порівняння без LanguageTool — сирі рядки після strip.
+
+    Args:
+        fragment: Рядок збігу з fuzzy-пошуку.
+        title: Оригінальна назва пісні.
+
+    Returns:
+        True, якщо збіг по назві (ідентичність або входження фрагмента в назву).
+    """
+    f = (fragment or '').strip()
+    t = (title or '').strip()
+    if not f or not t:
+        return False
+    return f == t or f in t
+
+
 def build_reply_match_snippet(
-    processed_query: str,
-    processed_title: str,
+    title: str,
     description: str,
+    processed_query: str,
 ) -> str:
     """
     Будує короткий текст для рядка «Збіг» у реплай-списку.
 
-    Якщо оброблений запит повністю збігається з назвою або входить у неї як підрядок —
-    повертає статичну мітку «Назва пісні». Інакше застосовує «розумну обрізку» рядка
-    збігу (до 32 символів разом із «...»).
+    Якщо фрагмент збігу збігається з назвою (повністю або як підрядок у назві) —
+    повертає статичну мітку «Назва пісні». Інакше — «розумну обрізку» рядка збігу
+    (до 32 символів разом із «...») з урахуванням уже обробленого запиту.
 
     Args:
-        processed_query: Запит після process_text (один раз на відповідь).
-        processed_title: Назва після process_text (заздалегідь з пошуку).
+        title: Оригінальна назва пісні.
         description: Рядок найкращого збігу з fuzzy-пошуку.
+        processed_query: Запит після process_text (один раз на пошук).
 
     Returns:
         Підготовлений текст без HTML-тегів (екранування далі у форматері).
     """
-    pq = (processed_query or '').strip()
-    pt = (processed_title or '').strip()
-    if pq and (pq == pt or pq in pt):
+    if _fragment_matches_title(description, title):
         return _TITLE_MATCH_LABEL
-    return _smart_truncate_fragment((description or '').strip(), pq)
+    return _smart_truncate_fragment((description or '').strip(), (processed_query or '').strip())
 
 
 def _smart_truncate_fragment(description: str, processed_query: str) -> str:

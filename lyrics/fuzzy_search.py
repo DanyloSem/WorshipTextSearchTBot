@@ -87,6 +87,8 @@ class FuzzySearchService:
         user_text: str,
         songs_data: dict,
         max_results: int | None = 50,
+        *,
+        processed_query: str | None = None,
     ) -> list[dict]:
         """
         Повертає список збігів по фрагменту тексту (LanguageTool + fuzzywuzzy).
@@ -97,11 +99,12 @@ class FuzzySearchService:
             user_text: Текст запиту користувача.
             songs_data: Словник {song_id: {title: lyrics}}.
             max_results: Максимум результатів (50 для інлайну, None — без обмеження для чату).
+            processed_query: Якщо задано — використовується замість повторного process_text(user_text).
 
         Returns:
             Список словників {song_id, title, lyrics, description}; description — фрагмент збігу.
         """
-        query = self.process_text(user_text)
+        query = processed_query if processed_query is not None else self.process_text(user_text)
         logger.info(
             '[FUZZY] search: user_text=%s, query_after_process=%s',
             user_text,

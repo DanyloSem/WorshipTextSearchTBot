@@ -11,6 +11,7 @@ from logs.log_config import logger
 from lyrics.fuzzy_search import FuzzySearchService
 from telegram import keyboards as kb
 from telegram.formatters import format_songs_list, format_songs_page_title
+from telegram.formatters.processed_query import get_processed_query_from_state_data
 from telegram.fsm import UserState
 from telegram.pagination import PAGE_SIZE, chunk_songs
 
@@ -36,7 +37,6 @@ def get_search_router(
         """Відображає першу сторінку результатів пошуку."""
         data = await state.get_data()
         songs_dict = data.get('songs_dict')
-        search_text = data.get('search_text') or ''
         logger.debug(
             '[SEARCH] display_songs_list: songs_dict keys count=%s',
             len(songs_dict) if songs_dict else 0,
@@ -44,7 +44,10 @@ def get_search_router(
         if songs_dict:
             chunks = chunk_songs(songs_dict, page_size=PAGE_SIZE)
             chunk = chunks[0]
-            songs_list = format_songs_list(chunk, fuzzy_search_service, search_text)
+            songs_list = format_songs_list(
+                chunk,
+                get_processed_query_from_state_data(data, fuzzy_search_service),
+            )
             pagination_keyboard = kb.create_pagination_keyboard(0, len(chunks))
             total = len(songs_dict)
             logger.info(
@@ -98,12 +101,17 @@ def get_search_router(
             user_id,
             search_text,
         )
-        await state.update_data(search_text=search_text)
+        search_query_processed = fuzzy_search_service.process_text(search_text or '')
+        await state.update_data(
+            search_text=search_text,
+            search_query_processed=search_query_processed,
+        )
         songs_data = repository.get_all()
         results = fuzzy_search_service.search(
             search_text,
             songs_data,
             max_results=None,
+            processed_query=search_query_processed,
         )
         songs_dict = {
             i: {

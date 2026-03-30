@@ -10,6 +10,7 @@ from aiogram.fsm.context import FSMContext
 from logs.log_config import logger
 from telegram import keyboards as kb
 from telegram.formatters import format_songs_list, format_songs_page_title
+from telegram.formatters.processed_query import get_processed_query_from_state_data
 from telegram.fsm import UserState
 from telegram.pagination import PAGE_SIZE, chunk_songs
 
@@ -37,7 +38,6 @@ def get_pagination_router(
         )
         data = await state.get_data()
         songs_dict = data.get('songs_dict')
-        search_text = data.get('search_text') or ''
         if not songs_dict:
             logger.warning('[PAGINATION] Немає songs_dict у state, пропуск')
             await callback_query.answer()
@@ -50,7 +50,10 @@ def get_pagination_router(
         )
         if page < len(chunks):
             chunk = chunks[page]
-            songs_list = format_songs_list(chunk, fuzzy_search_service, search_text)
+            songs_list = format_songs_list(
+                chunk,
+                get_processed_query_from_state_data(data, fuzzy_search_service),
+            )
             pagination_keyboard = kb.create_pagination_keyboard(page, len(chunks))
             total = len(songs_dict)
             logger.info(

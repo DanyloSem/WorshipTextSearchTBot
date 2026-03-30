@@ -3,46 +3,30 @@
 from __future__ import annotations
 
 from html import escape
-from typing import TYPE_CHECKING
 
 from telegram.formatters.match_snippet import build_reply_match_snippet
 
-if TYPE_CHECKING:
-    from lyrics.fuzzy_search import FuzzySearchService
 
-
-def format_songs_list(
-    chunk: dict,
-    fuzzy_search_service: 'FuzzySearchService',
-    search_text: str,
-) -> str:
+def format_songs_list(chunk: dict, processed_query: str) -> str:
     """
     Форматує фрагмент словника пісень у текстовий список для реплай-режиму.
 
     Заголовок сторінки формується окремо; тут лише блоки пісень (HTML: курсив у фрагменті збігу).
+    processed_query має бути обчислений один раз (LanguageTool) і збережений у FSM.
 
     Args:
-        chunk: Словник {index: {"title", "id", "description", опціонально "title_processed"}}.
-        fuzzy_search_service: Сервіс нормалізації запиту (process_text викликається один раз).
-        search_text: Оригінальний текст запиту користувача.
+        chunk: Словник {index: {"title", "id", "description"}}.
+        processed_query: Запит після process_text (один раз на пошук).
 
     Returns:
         Рядок з нумерованим списком пісень (HTML: курсив у фрагменті збігу).
     """
-    processed_query = fuzzy_search_service.process_text(search_text or '')
     blocks: list[str] = []
     for index, song in chunk.items():
         title = song.get('title', '') or ''
         song_id = song.get('id', '') or ''
         description = song.get('description', '') or ''
-        processed_title = song.get('title_processed')
-        if processed_title is None:
-            processed_title = fuzzy_search_service.process_text(title)
-        inner = build_reply_match_snippet(
-            processed_query,
-            processed_title,
-            description,
-        )
+        inner = build_reply_match_snippet(title, description, processed_query)
         blocks.append(
             '\n'.join(
                 [
