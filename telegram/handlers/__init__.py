@@ -68,6 +68,11 @@ def create_router(
         get_search_router(fuzzy, repository, telegram_admins=telegram_admins),
     )
     router.include_router(get_inline_router(inlinesearch))
-    router.include_router(get_pagination_router(telegram_admins=telegram_admins))
+    router.include_router(
+        get_pagination_router(
+            fuzzy_search_service=fuzzy,
+            telegram_admins=telegram_admins,
+        ),
+    )
 
     return router

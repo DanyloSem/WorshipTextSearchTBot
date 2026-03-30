@@ -1,17 +1,26 @@
 """Обробники пагінації та повернення до пошуку."""
 
+from typing import TYPE_CHECKING
+
 from aiogram import Router, F
+from aiogram.enums import ParseMode
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from logs.log_config import logger
 from telegram import keyboards as kb
-from telegram.formatters import format_songs_list
+from telegram.formatters import format_songs_list, format_songs_page_title
 from telegram.fsm import UserState
 from telegram.pagination import PAGE_SIZE, chunk_songs, get_page_range
 
+if TYPE_CHECKING:
+    from lyrics.fuzzy_search import FuzzySearchService
 
-def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
+
+def get_pagination_router(
+    fuzzy_search_service: 'FuzzySearchService',
+    telegram_admins: tuple[int, ...] = (),
+) -> Router:
     """Повертає роутер з обробниками пагінації та повернення до пошуку."""
     router = Router()
     admin_ids = frozenset(telegram_admins)
@@ -28,6 +37,7 @@ def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
         )
         data = await state.get_data()
         songs_dict = data.get('songs_dict')
+        search_text = data.get('search_text') or ''
         if not songs_dict:
             logger.warning('[PAGINATION] Немає songs_dict у state, пропуск')
             await callback_query.answer()
@@ -40,7 +50,7 @@ def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
         )
         if page < len(chunks):
             chunk = chunks[page]
-            songs_list = format_songs_list(chunk)
+            songs_list = format_songs_list(chunk, fuzzy_search_service, search_text)
             pagination_keyboard = kb.create_pagination_keyboard(page, len(chunks))
             start, end = get_page_range(page, len(chunks), len(songs_dict), page_size=PAGE_SIZE)
             logger.info(
@@ -50,8 +60,12 @@ def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
                 start,
                 end,
             )
-            answer = f'📖 Пісні від {start} до {end}:\n\n{songs_list}'
-            await callback_query.message.edit_text(answer, reply_markup=pagination_keyboard)
+            answer = f'{format_songs_page_title(start, end)}\n\n{songs_list}'
+            await callback_query.message.edit_text(
+                answer,
+                reply_markup=pagination_keyboard,
+                parse_mode=ParseMode.HTML,
+            )
         await callback_query.answer()
 
     @router.callback_query(F.data == 'return_to_search_method')

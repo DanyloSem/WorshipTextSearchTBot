@@ -3,13 +3,14 @@
 from typing import TYPE_CHECKING
 
 from aiogram import Router, F
+from aiogram.enums import ParseMode
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from logs.log_config import logger
 from lyrics.fuzzy_search import FuzzySearchService
 from telegram import keyboards as kb
-from telegram.formatters import format_songs_list
+from telegram.formatters import format_songs_list, format_songs_page_title
 from telegram.fsm import UserState
 from telegram.pagination import PAGE_SIZE, chunk_songs, get_page_range
 
@@ -35,6 +36,7 @@ def get_search_router(
         """Відображає першу сторінку результатів пошуку."""
         data = await state.get_data()
         songs_dict = data.get('songs_dict')
+        search_text = data.get('search_text') or ''
         logger.debug(
             '[SEARCH] display_songs_list: songs_dict keys count=%s',
             len(songs_dict) if songs_dict else 0,
@@ -42,7 +44,7 @@ def get_search_router(
         if songs_dict:
             chunks = chunk_songs(songs_dict, page_size=PAGE_SIZE)
             chunk = chunks[0]
-            songs_list = format_songs_list(chunk)
+            songs_list = format_songs_list(chunk, fuzzy_search_service, search_text)
             pagination_keyboard = kb.create_pagination_keyboard(0, len(chunks))
             start, end = get_page_range(0, len(chunks), len(songs_dict), page_size=PAGE_SIZE)
             logger.info(
@@ -52,8 +54,12 @@ def get_search_router(
                 start,
                 end,
             )
-            answer = f'📖 Пісні від {start} до {end}:\n\n{songs_list}'
-            await message.answer(answer, reply_markup=pagination_keyboard)
+            answer = f'{format_songs_page_title(start, end)}\n\n{songs_list}'
+            await message.answer(
+                answer,
+                reply_markup=pagination_keyboard,
+                parse_mode=ParseMode.HTML,
+            )
             await message.answer(
                 '👇 Новий пошук — кнопка нижче',
                 reply_markup=_search_reply_markup(message),
