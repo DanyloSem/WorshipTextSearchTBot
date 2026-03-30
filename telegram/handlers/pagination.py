@@ -42,7 +42,7 @@ def get_pagination_router(telegram_admins: tuple[int, ...] = ()) -> Router:
             chunk = chunks[page]
             songs_list = format_songs_list(chunk)
             pagination_keyboard = kb.create_pagination_keyboard(page, len(chunks))
-            start, end = get_page_range(page, len(chunks), len(songs_dict))
+            start, end = get_page_range(page, len(chunks), len(songs_dict), page_size=PAGE_SIZE)
             logger.info(
                 '[PAGINATION] Відображення сторінки: page=%s, total_pages=%s, range %s-%s',
                 page + 1,

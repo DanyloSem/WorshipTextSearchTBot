@@ -44,7 +44,7 @@ def get_search_router(
             chunk = chunks[0]
             songs_list = format_songs_list(chunk)
             pagination_keyboard = kb.create_pagination_keyboard(0, len(chunks))
-            start, end = get_page_range(0, len(chunks), len(songs_dict))
+            start, end = get_page_range(0, len(chunks), len(songs_dict), page_size=PAGE_SIZE)
             logger.info(
                 '[SEARCH] Відображення списку пісень: total=%s, chunks=%s, page 1 range %s-%s',
                 len(songs_dict),
@@ -101,10 +101,13 @@ def get_search_router(
             songs_data,
             max_results=None,
         )
-        sorted_results = sorted(results, key=lambda r: r['title'].lower())
         songs_dict = {
-            i: {'title': r['title'], 'id': r['song_id']}
-            for i, r in enumerate(sorted_results, start=1)
+            i: {
+                'title': r['title'],
+                'id': r['song_id'],
+                'description': r['description'],
+            }
+            for i, r in enumerate(results, start=1)
         }
         logger.info(
             '[SEARCH] Fuzzy по локальній БД: знайдено=%s',

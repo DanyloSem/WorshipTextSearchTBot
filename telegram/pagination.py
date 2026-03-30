@@ -1,6 +1,6 @@
 """Логіка пагінації списку пісень."""
 
-PAGE_SIZE = 7
+PAGE_SIZE = 5
 
 
 def chunk_songs(songs_dict: dict, page_size: int = PAGE_SIZE) -> list[dict]:
@@ -18,7 +18,12 @@ def chunk_songs(songs_dict: dict, page_size: int = PAGE_SIZE) -> list[dict]:
     return [dict(items[i : i + page_size]) for i in range(0, len(items), page_size)]
 
 
-def get_page_range(page: int, total_pages: int, total_items: int) -> tuple[int, int]:
+def get_page_range(
+    page: int,
+    total_pages: int,
+    total_items: int,
+    page_size: int = PAGE_SIZE,
+) -> tuple[int, int]:
     """
     Повертає діапазон індексів елементів для сторінки (1-based для відображення).
 
@@ -26,10 +31,11 @@ def get_page_range(page: int, total_pages: int, total_items: int) -> tuple[int, 
         page: Номер сторінки (0-based).
         total_pages: Загальна кількість сторінок.
         total_items: Загальна кількість елементів.
+        page_size: Кількість елементів на сторінці.
 
     Returns:
         Кортеж (start, end) для відображення «Пісні від start до end».
     """
-    start = page * PAGE_SIZE + 1
-    end = min((page + 1) * PAGE_SIZE, total_items)
+    start = page * page_size + 1
+    end = min((page + 1) * page_size, total_items)
     return start, end
