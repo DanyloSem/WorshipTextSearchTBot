@@ -11,7 +11,7 @@ from logs.log_config import logger
 from telegram import keyboards as kb
 from telegram.formatters import format_songs_list, format_songs_page_title
 from telegram.fsm import UserState
-from telegram.pagination import PAGE_SIZE, chunk_songs, get_page_range
+from telegram.pagination import PAGE_SIZE, chunk_songs
 
 if TYPE_CHECKING:
     from lyrics.fuzzy_search import FuzzySearchService
@@ -52,15 +52,14 @@ def get_pagination_router(
             chunk = chunks[page]
             songs_list = format_songs_list(chunk, fuzzy_search_service, search_text)
             pagination_keyboard = kb.create_pagination_keyboard(page, len(chunks))
-            start, end = get_page_range(page, len(chunks), len(songs_dict), page_size=PAGE_SIZE)
+            total = len(songs_dict)
             logger.info(
-                '[PAGINATION] Відображення сторінки: page=%s, total_pages=%s, range %s-%s',
+                '[PAGINATION] Відображення сторінки: page=%s, total_pages=%s, total_songs=%s',
                 page + 1,
                 len(chunks),
-                start,
-                end,
+                total,
             )
-            answer = f'{format_songs_page_title(start, end)}\n\n{songs_list}'
+            answer = f'{format_songs_page_title(total)}\n\n{songs_list}'
             await callback_query.message.edit_text(
                 answer,
                 reply_markup=pagination_keyboard,

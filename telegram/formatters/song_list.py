@@ -19,33 +19,35 @@ def format_songs_list(
     """
     Форматує фрагмент словника пісень у текстовий список для реплай-режиму.
 
-    Заголовок сторінки формується окремо; тут лише блоки пісень (HTML для жирного/підкреслення
-    задається в обробниках через parse_mode).
+    Заголовок сторінки формується окремо; тут лише блоки пісень (HTML: курсив у фрагменті збігу).
 
     Args:
-        chunk: Словник {index: {"title": str, "id": str, "description": str}}.
-        fuzzy_search_service: Сервіс узгодженої нормалізації запиту з пошуком.
-        search_text: Оригінальний текст запиту користувача (для рядка «Збіг»).
+        chunk: Словник {index: {"title", "id", "description", опціонально "title_processed"}}.
+        fuzzy_search_service: Сервіс нормалізації запиту (process_text викликається один раз).
+        search_text: Оригінальний текст запиту користувача.
 
     Returns:
-        Рядок з нумерованим списком пісень (HTML: підкреслення у фрагменті збігу).
+        Рядок з нумерованим списком пісень (HTML: курсив у фрагменті збігу).
     """
+    processed_query = fuzzy_search_service.process_text(search_text or '')
     blocks: list[str] = []
     for index, song in chunk.items():
         title = song.get('title', '') or ''
         song_id = song.get('id', '') or ''
         description = song.get('description', '') or ''
+        processed_title = song.get('title_processed')
+        if processed_title is None:
+            processed_title = fuzzy_search_service.process_text(title)
         inner = build_reply_match_snippet(
-            fuzzy_search_service,
-            search_text,
-            title,
+            processed_query,
+            processed_title,
             description,
         )
         blocks.append(
             '\n'.join(
                 [
                     f'▶️ {index}. {escape(title)}',
-                    f'🎯 Збіг: <u>{escape(inner)}</u>',
+                    f'🎯 Збіг: <i>{escape(inner)}</i>',
                     f'📝 Текст: /id_{song_id}',
                 ],
             ),
@@ -53,15 +55,28 @@ def format_songs_list(
     return '\n\n'.join(blocks)
 
 
-def format_songs_page_title(start: int, end: int) -> str:
+def _uk_songs_word(count: int) -> str:
+    """Повертає слово після числа для «Знайдено N …»."""
+    n100 = count % 100
+    if 11 <= n100 <= 14:
+        return 'пісень'
+    n10 = count % 10
+    if n10 == 1:
+        return 'пісню'
+    if 2 <= n10 <= 4:
+        return 'пісні'
+    return 'пісень'
+
+
+def format_songs_page_title(total: int) -> str:
     """
-    Формує HTML-заголовок сторінки списку пісень (жирний шрифт).
+    Формує HTML-заголовок списку знайдених пісень (жирний шрифт).
 
     Args:
-        start: Перший номер у списку (1-based).
-        end: Останній номер на сторінці.
+        total: Загальна кількість знайдених пісень.
 
     Returns:
         Рядок з тегом <b> для Telegram HTML.
     """
-    return f'<b>📖 Пісні від {start} до {end}:</b>'
+    word = _uk_songs_word(total)
+    return f'<b>📖 Знайдено {total} {word}:</b>'

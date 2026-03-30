@@ -1,21 +1,13 @@
 """Фрагмент збігу для реплай-списку пісень (назва vs контекст, обрізка до 32 символів)."""
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from lyrics.fuzzy_search import FuzzySearchService
-
 _DISPLAY_MAX = 32
 _ELLIPSIS = '...'
 _TITLE_MATCH_LABEL = 'Назва пісні'
 
 
 def build_reply_match_snippet(
-    fuzzy_search_service: 'FuzzySearchService',
-    search_text: str,
-    title: str,
+    processed_query: str,
+    processed_title: str,
     description: str,
 ) -> str:
     """
@@ -26,21 +18,18 @@ def build_reply_match_snippet(
     збігу (до 32 символів разом із «...»).
 
     Args:
-        fuzzy_search_service: Сервіс тієї ж нормалізації запиту/назви, що й пошук.
-        search_text: Текст запиту користувача.
-        title: Назва пісні.
+        processed_query: Запит після process_text (один раз на відповідь).
+        processed_title: Назва після process_text (заздалегідь з пошуку).
         description: Рядок найкращого збігу з fuzzy-пошуку.
 
     Returns:
         Підготовлений текст без HTML-тегів (екранування далі у форматері).
     """
-    processed_query = fuzzy_search_service.process_text(search_text or '')
-    processed_title = fuzzy_search_service.process_text(title or '')
-    if processed_query and (
-        processed_query == processed_title or processed_query in processed_title
-    ):
+    pq = (processed_query or '').strip()
+    pt = (processed_title or '').strip()
+    if pq and (pq == pt or pq in pt):
         return _TITLE_MATCH_LABEL
-    return _smart_truncate_fragment((description or '').strip(), processed_query)
+    return _smart_truncate_fragment((description or '').strip(), pq)
 
 
 def _smart_truncate_fragment(description: str, processed_query: str) -> str:
