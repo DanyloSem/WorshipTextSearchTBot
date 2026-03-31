@@ -30,7 +30,7 @@ def format_songs_list(chunk: dict, processed_query: str) -> str:
         blocks.append(
             '\n'.join(
                 [
-                    f'▶️ {index}. {escape(title)}',
+                    f'🎵 {index}. {escape(title)}',
                     f'🎯 Збіг: <i>{escape(inner)}</i>',
                     f'📝 Текст: /id_{song_id}',
                 ],
