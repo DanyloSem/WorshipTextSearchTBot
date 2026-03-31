@@ -121,7 +121,7 @@ class SongSearchService:
         if not song_data or not song_data.get('data'):
             return None
         lyrics_raw = song_data['data'][0]['attributes'].get('lyrics')
-        return lyrics_raw if lyrics_raw is not None else 'Текст пісні відсутній.'
+        return lyrics_raw
 
     async def fetch_song_by_id(self, song_id: str) -> dict | None:
         """
@@ -147,7 +147,7 @@ class SongSearchService:
         return {
             'id': song_id,
             'title': title,
-            'lyrics': lyrics or '',
+            'lyrics': lyrics,
             'updated_at': attrs.get('updated_at'),
             'created_at': attrs.get('created_at'),
         }
@@ -194,7 +194,7 @@ class SongSearchService:
                     {
                         'id': song_id,
                         'title': title,
-                        'lyrics': lyrics or '',
+                        'lyrics': lyrics,
                         'updated_at': attrs.get('updated_at'),
                         'created_at': attrs.get('created_at'),
                     },

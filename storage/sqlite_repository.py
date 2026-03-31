@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from logs.log_config import logger
@@ -57,6 +57,15 @@ class SQLiteSongRepository:
                 )
                 ''',
             )
+            conn.execute(
+                '''
+                UPDATE songs
+                SET lyrics = NULL
+                WHERE lyrics IS NULL
+                   OR TRIM(lyrics) = ''
+                   OR lyrics = 'Текст пісні відсутній.'
+                ''',
+            )
             conn.commit()
         logger.debug('[STORAGE] Схема перевірена/створена')
 
@@ -78,7 +87,7 @@ class SQLiteSongRepository:
             ).fetchone()
         if row is None:
             return None
-        return {'id': row['id'], 'title': row['title'], 'lyrics': row['lyrics'] or ''}
+        return {'id': row['id'], 'title': row['title'], 'lyrics': row['lyrics']}
 
     def get_all(self) -> dict:
         """
@@ -94,7 +103,7 @@ class SQLiteSongRepository:
         for row in rows:
             song_id = row['id']
             title = row['title'] or ''
-            lyrics = row['lyrics'] or ''
+            lyrics = row['lyrics']
             result[song_id] = {title: lyrics}
         logger.debug('[STORAGE] get_all: пісень=%s', len(result))
         return result
@@ -119,7 +128,11 @@ class SQLiteSongRepository:
                     (
                         s['id'],
                         s.get('title', ''),
-                        s.get('lyrics', ''),
+                        (
+                            None
+                            if (s.get('lyrics') is None or str(s.get('lyrics')).strip() in {'', 'Текст пісні відсутній.'})
+                            else s.get('lyrics')
+                        ),
                         s.get('updated_at'),
                         s.get('created_at'),
                     )

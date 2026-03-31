@@ -49,6 +49,8 @@ def get_inline_router(inline_search: InlineSearch) -> Router:
             title = list(inline_search.songs_data[song_id].keys())[0]
             title = inline_search.format_title(title)
             lyrics = list(inline_search.songs_data[song_id].values())[0]
+            if not isinstance(lyrics, str) or not lyrics.strip():
+                lyrics = 'Текст пісні відсутній.'
             results.append(
                 InlineQueryResultArticle(
                     id=song_id,

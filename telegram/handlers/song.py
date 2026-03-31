@@ -40,16 +40,17 @@ def get_song_router(
             logger.debug('[SONG] Запит тексту з локальної БД: song_id=%s', song_id)
             record = repository.get_by_id(song_id)
             reply_markup = _reply_markup(message)
-            if record and record.get('lyrics'):
+            lyrics = record.get('lyrics') if record else None
+            if isinstance(lyrics, str) and lyrics.strip():
                 logger.info(
                     '[SONG] Текст отримано: song_id=%s, length=%s',
                     song_id,
-                    len(record['lyrics']),
+                    len(lyrics),
                 )
-                await message.answer(record['lyrics'], reply_markup=reply_markup)
+                await message.answer(lyrics, reply_markup=reply_markup)
             else:
                 logger.warning('[SONG] Текст пісні не знайдено в локальній БД: song_id=%s', song_id)
-                await message.answer('Текст пісні не знайдено.', reply_markup=reply_markup)
+                await message.answer('Текст пісні відсутній.', reply_markup=reply_markup)
             await state.set_state(UserState.search_query)
             logger.debug('[SONG] Стан встановлено: UserState.search_query')
         else:
