@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from aiogram import Bot
 
 THROTTLE_MESSAGE = (
-    'Забагато кліків. Зачекай секунду і спробуй ще раз 😉'
+    'Забагато кліків. Зачекай трохи і спробуй ще раз 😉'
 )
 WARNING_COOLDOWN_SECONDS = 10.0
 
@@ -30,7 +30,7 @@ class ThrottleMiddleware(BaseMiddleware):
     def __init__(
         self,
         rate_limit: int = 1,
-        window_seconds: float = 1.0,
+        window_seconds: float = 0.5,
         bot: 'Bot | None' = None,
         warning_cooldown_seconds: float = WARNING_COOLDOWN_SECONDS,
     ) -> None:

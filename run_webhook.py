@@ -65,7 +65,7 @@ def main() -> None:
     dp.update.middleware(
         ThrottleMiddleware(
             rate_limit=1,
-            window_seconds=1.0,
+            window_seconds=0.5,
             bot=bot,
         ),
     )
