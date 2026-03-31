@@ -101,7 +101,7 @@ def get_search_router(
             user_id,
             search_text,
         )
-        await message.answer('🔍 Шукаю пісню у базі...')
+        await message.answer('🔍 Шукаю співпадіння в базі...')
         search_query_processed = fuzzy_search_service.process_text(search_text or '')
         await state.update_data(
             search_text=search_text,
